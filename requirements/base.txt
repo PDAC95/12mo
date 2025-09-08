@@ -1,0 +1,12 @@
+Django==5.0.1
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
+django-allauth==0.57.0
+# psycopg2-binary==2.9.9  # Instalar después con Visual C++ Build Tools
+redis==5.0.1
+django-redis==5.4.0
+python-decouple==3.8
+Pillow==10.4.0
+celery==5.3.4
+django-cors-headers==4.3.1
+gunicorn==21.2.0
