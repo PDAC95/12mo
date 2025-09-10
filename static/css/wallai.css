@@ -1,0 +1,179 @@
+/* Wallai Brand CSS - Official Colors and Styles */
+
+:root {
+  /* Wallai Brand Colors */
+  --wallai-green: #4ADE80;
+  --wallai-teal: #5EEAD4;
+  --wallai-blue: #3B82A6;
+  --wallai-dark: #1E293B;
+  --wallai-light: #F8FAFC;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #4ADE80 0%, #5EEAD4 50%, #3B82A6 100%);
+  --gradient-secondary: linear-gradient(135deg, #5EEAD4 0%, #3B82A6 100%);
+  --gradient-accent: linear-gradient(135deg, #4ADE80 0%, #5EEAD4 100%);
+  
+  /* Shadows */
+  --wallai-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --wallai-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Wallai Brand Utilities */
+.bg-wallai-gradient {
+  background: var(--gradient-primary);
+}
+
+.bg-wallai-secondary {
+  background: var(--gradient-secondary);
+}
+
+.bg-wallai-accent {
+  background: var(--gradient-accent);
+}
+
+.text-wallai-green {
+  color: var(--wallai-green);
+}
+
+.text-wallai-teal {
+  color: var(--wallai-teal);
+}
+
+.text-wallai-blue {
+  color: var(--wallai-blue);
+}
+
+.text-wallai-dark {
+  color: var(--wallai-dark);
+}
+
+.border-wallai-green {
+  border-color: var(--wallai-green);
+}
+
+.border-wallai-teal {
+  border-color: var(--wallai-teal);
+}
+
+.border-wallai-blue {
+  border-color: var(--wallai-blue);
+}
+
+/* Hover States */
+.hover\:bg-wallai-green:hover {
+  background-color: var(--wallai-green);
+}
+
+.hover\:bg-wallai-teal:hover {
+  background-color: var(--wallai-teal);
+}
+
+.hover\:bg-wallai-blue:hover {
+  background-color: var(--wallai-blue);
+}
+
+.hover\:text-wallai-green:hover {
+  color: var(--wallai-green);
+}
+
+.hover\:border-wallai-green:hover {
+  border-color: var(--wallai-green);
+}
+
+/* Custom Components */
+.wallai-btn {
+  @apply px-6 py-3 rounded-xl font-semibold text-white shadow-lg transition-all duration-200;
+  background: var(--gradient-primary);
+}
+
+.wallai-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--wallai-shadow-lg);
+}
+
+.wallai-btn-outline {
+  @apply px-6 py-3 rounded-xl font-semibold border-2 transition-all duration-200;
+  border-color: var(--wallai-green);
+  color: var(--wallai-green);
+}
+
+.wallai-btn-outline:hover {
+  background-color: var(--wallai-green);
+  @apply text-white;
+}
+
+.wallai-card {
+  @apply bg-white rounded-2xl p-6 shadow-lg border border-gray-100;
+}
+
+.wallai-input {
+  @apply w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-wallai-green focus:outline-none transition-colors duration-200;
+}
+
+.wallai-input:focus {
+  border-color: var(--wallai-green);
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1);
+}
+
+/* Gradient Text */
+.wallai-gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animation Classes */
+@keyframes wallai-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.wallai-float {
+  animation: wallai-float 3s ease-in-out infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .wallai-btn {
+    @apply px-4 py-2 text-sm;
+  }
+  
+  .wallai-btn-outline {
+    @apply px-4 py-2 text-sm;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .wallai-card {
+    @apply bg-gray-800 border-gray-700;
+  }
+  
+  .wallai-input {
+    @apply bg-gray-800 text-white border-gray-600;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gradient-primary);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--wallai-green);
+}

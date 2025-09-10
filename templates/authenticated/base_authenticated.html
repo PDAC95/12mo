@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" class="h-full bg-gray-50">
+<head>
+    {% load static %}
+    {% load i18n %}
+    
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="theme-color" content="#2563eb">
+    
+    <title>{% block title %}MonAI - {% trans "Gestión Financiera Familiar" %}{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+    
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MonAI">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                            DEFAULT: '#2563eb'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Alpine.js for interactive components -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Custom styles -->
+    <style>
+        .sidebar-transition {
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar-hidden {
+                transform: translateX(-100%);
+            }
+        }
+        
+        .nav-item {
+            @apply flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary transition-colors duration-200;
+        }
+        
+        .nav-item.active {
+            @apply bg-primary text-white;
+        }
+        
+        .nav-item.active:hover {
+            @apply bg-primary-600;
+        }
+        
+        .mobile-nav-item {
+            @apply flex flex-col items-center justify-center p-2 text-xs text-gray-600 hover:text-primary transition-colors duration-200;
+        }
+        
+        .mobile-nav-item.active {
+            @apply text-primary;
+        }
+    </style>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="h-full overflow-hidden" x-data="{ sidebarOpen: false, currentPath: window.location.pathname }">
+    
+    <!-- Mobile sidebar backdrop -->
+    <div x-show="sidebarOpen" 
+         x-transition:enter="transition-opacity ease-linear duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-linear duration-300"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"
+         @click="sidebarOpen = false"></div>
+
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg sidebar-transition md:translate-x-0"
+         :class="{ 'sidebar-hidden': !sidebarOpen }"
+         x-show="sidebarOpen || window.innerWidth >= 768">
+        
+        <!-- Sidebar Header -->
+        <div class="flex items-center justify-between h-16 px-4 bg-primary">
+            <div class="flex items-center">
+                <h1 class="text-xl font-bold text-white">MonAI</h1>
+            </div>
+            <button @click="sidebarOpen = false" 
+                    class="text-white md:hidden hover:text-gray-300 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="mt-8">
+            <div class="px-4">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    {% trans "Principal" %}
+                </p>
+            </div>
+            
+            <ul class="mt-4 space-y-1">
+                <li>
+                    <a href="{% url 'dashboard:home' %}" 
+                       class="nav-item"
+                       :class="{ 'active': currentPath === '{% url 'dashboard:home' %}' }">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v0a2 2 0 01-2 2H10a2 2 0 01-2-2v0z"></path>
+                        </svg>
+                        {% trans "Dashboard" %}
+                    </a>
+                </li>
+                
+                <li>
+                    <a href="#" 
+                       class="nav-item opacity-50 cursor-not-allowed">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        {% trans "Espacios" %}
+                        <span class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                            {% trans "Próximamente" %}
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a href="#" 
+                       class="nav-item opacity-50 cursor-not-allowed">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        {% trans "Presupuestos" %}
+                        <span class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                            {% trans "Próximamente" %}
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a href="#" 
+                       class="nav-item opacity-50 cursor-not-allowed">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        {% trans "Gastos" %}
+                        <span class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                            {% trans "Próximamente" %}
+                        </span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="px-4 mt-8">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    {% trans "Cuenta" %}
+                </p>
+            </div>
+            
+            <ul class="mt-4 space-y-1">
+                <li>
+                    <a href="#" 
+                       class="nav-item opacity-50 cursor-not-allowed">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        {% trans "Configuración" %}
+                        <span class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                            {% trans "Próximamente" %}
+                        </span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- User Profile Section -->
+        <div class="absolute bottom-0 w-full p-4 border-t border-gray-200">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                        <span class="text-sm font-medium text-white">
+                            {{ user.username.0|upper }}
+                        </span>
+                    </div>
+                </div>
+                <div class="ml-3 flex-1">
+                    <p class="text-sm font-medium text-gray-900">{{ user.username }}</p>
+                    <p class="text-xs text-gray-500">{{ user.email }}</p>
+                </div>
+                <div class="ml-3">
+                    <a href="{% url 'authentication:logout' %}" 
+                       class="text-gray-400 hover:text-gray-600 transition-colors"
+                       title="{% trans 'Cerrar sesión' %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="md:ml-64 flex flex-col min-h-screen">
+        
+        <!-- Top Header (Mobile) -->
+        <header class="md:hidden bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
+            <div class="flex items-center justify-between h-16 px-4">
+                <button @click="sidebarOpen = true" 
+                        class="text-gray-600 hover:text-primary transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                
+                <h1 class="text-lg font-semibold text-gray-900">MonAI</h1>
+                
+                <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                    <span class="text-sm font-medium text-white">
+                        {{ user.username.0|upper }}
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-50 pb-16 md:pb-0">
+            <!-- Messages -->
+            {% if messages %}
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+                    {% for message in messages %}
+                        <div class="mb-4 p-4 rounded-md {% if message.tags == 'error' %}bg-red-50 border border-red-200 text-red-700{% elif message.tags == 'warning' %}bg-yellow-50 border border-yellow-200 text-yellow-700{% elif message.tags == 'success' %}bg-green-50 border border-green-200 text-green-700{% else %}bg-blue-50 border border-blue-200 text-blue-700{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Bottom Navigation (Mobile Only) -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
+        <div class="flex justify-around">
+            <a href="{% url 'dashboard:home' %}" 
+               class="mobile-nav-item"
+               :class="{ 'active': currentPath === '{% url 'dashboard:home' %}' }">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v0a2 2 0 01-2 2H10a2 2 0 01-2-2v0z"></path>
+                </svg>
+                <span>{% trans "Dashboard" %}</span>
+            </a>
+            
+            <div class="mobile-nav-item opacity-50">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+                <span>{% trans "Espacios" %}</span>
+            </div>
+            
+            <div class="mobile-nav-item opacity-50">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                </svg>
+                <span>{% trans "Presupuestos" %}</span>
+            </div>
+            
+            <div class="mobile-nav-item opacity-50">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                <span>{% trans "Gastos" %}</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- PWA Service Worker -->
+    {% block extra_js %}{% endblock %}
+    
+    <script>
+        // Register service worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('{% static "sw.js" %}')
+                    .then(function(registration) {
+                        console.log('SW registered: ', registration);
+                    }).catch(function(registrationError) {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+        
+        // Close sidebar when clicking on main content (mobile)
+        document.addEventListener('click', function(e) {
+            const sidebar = document.querySelector('[x-data]');
+            if (window.innerWidth < 768 && !e.target.closest('.fixed.inset-y-0') && !e.target.closest('[\\@click="sidebarOpen = true"]')) {
+                Alpine.store('sidebarOpen', false);
+            }
+        });
+    </script>
+</body>
+</html>

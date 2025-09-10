@@ -4,7 +4,17 @@
       "Bash(python manage.py:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(dir)",
+      "Bash(dir apps)",
+      "Bash(venvScripts:*)",
+      "Bash(pip install:*)",
+      "Bash(venv\\Scripts\\activate:*)",
+      "Bash(python -m pip install:*)",
+      "Bash(timeout:*)",
+      "Bash(mkdir:*)",
+      "Bash(python:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

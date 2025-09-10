@@ -1,0 +1,333 @@
+{% load static %}
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{% get_current_language %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="{% trans 'MonAI - Gestión financiera compartida para familias y amigos' %}">
+    <meta name="keywords" content="finanzas, gastos, presupuesto, compartido, familia">
+    <meta name="author" content="MonAI Team">
+    
+    <!-- Progressive Web App -->
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="MonAI">
+    
+    <!-- PWA Icons -->
+    <link rel="apple-touch-icon" sizes="72x72" href="{% static 'pwa/icon-72x72.png' %}">
+    <link rel="apple-touch-icon" sizes="96x96" href="{% static 'pwa/icon-96x96.png' %}">
+    <link rel="apple-touch-icon" sizes="128x128" href="{% static 'pwa/icon-128x128.png' %}">
+    <link rel="apple-touch-icon" sizes="144x144" href="{% static 'pwa/icon-144x144.png' %}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{% static 'pwa/icon-152x152.png' %}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{% static 'pwa/icon-192x192.png' %}">
+    <link rel="apple-touch-icon" sizes="384x384" href="{% static 'pwa/icon-384x384.png' %}">
+    <link rel="apple-touch-icon" sizes="512x512" href="{% static 'pwa/icon-512x512.png' %}">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{% static 'pwa/manifest.json' %}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'pwa/icon-72x72.png' %}">
+    <link rel="shortcut icon" href="{% static 'pwa/icon-72x72.png' %}">
+    
+    <title>{% block title %}MonAI - {% trans 'Finanzas Compartidas' %}{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a'
+                        },
+                        success: {
+                            50: '#f0fdf4',
+                            500: '#22c55e',
+                            600: '#16a34a'
+                        },
+                        warning: {
+                            50: '#fefce8',
+                            500: '#eab308',
+                            600: '#ca8a04'
+                        },
+                        danger: {
+                            50: '#fef2f2',
+                            500: '#ef4444',
+                            600: '#dc2626'
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Alpine.js for reactivity -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="bg-gray-50 font-sans min-h-screen flex flex-col">
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-600 text-white px-4 py-2 rounded-md z-50">
+        {% trans 'Saltar al contenido principal' %}
+    </a>
+
+    <!-- Top Navigation (Desktop) -->
+    <nav class="bg-white shadow-sm border-b border-gray-200 hidden md:block sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <img class="h-8 w-auto" src="{% static 'images/logo.svg' %}" alt="MonAI">
+                        <span class="ml-2 text-xl font-bold text-primary-900">MonAI</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    {% if user.is_authenticated %}
+                        <!-- Language Switcher -->
+                        <div class="relative" x-data="{ open: false }">
+                            <button @click="open = !open" class="flex items-center text-sm text-gray-500 hover:text-gray-700">
+                                <span class="sr-only">{% trans 'Cambiar idioma' %}</span>
+                                🌐 <span class="ml-1">{% get_current_language %}</span>
+                            </button>
+                            <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                                <form method="post" action="{% url 'set_language' %}">
+                                    {% csrf_token %}
+                                    <input name="next" type="hidden" value="{{ request.get_full_path|slice:'1:' }}">
+                                    <button type="submit" name="language" value="es" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🇪🇸 Español</button>
+                                    <button type="submit" name="language" value="en" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🇺🇸 English</button>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <!-- User Menu -->
+                        <div class="relative" x-data="{ open: false }">
+                            <button @click="open = !open" class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                <span class="sr-only">{% trans 'Abrir menú de usuario' %}</span>
+                                <div class="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center text-white font-medium">
+                                    {{ user.first_name|first|default:user.email|first|upper }}
+                                </div>
+                            </button>
+                            <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                                <div class="px-4 py-2 text-sm text-gray-700 border-b">
+                                    <div class="font-medium">{{ user.get_full_name|default:user.username }}</div>
+                                    <div class="text-gray-500">{{ user.email }}</div>
+                                </div>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{% trans 'Configuración' %}</a>
+                                <a href="{% url 'authentication:logout' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{% trans 'Cerrar Sesión' %}</a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a href="{% url 'authentication:login' %}" class="text-primary-600 hover:text-primary-500">{% trans 'Iniciar Sesión' %}</a>
+                        <a href="{% url 'authentication:register' %}" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium">{% trans 'Registrarse' %}</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content" class="flex-1 pb-20 md:pb-0">
+        <!-- Messages/Alerts -->
+        {% if messages %}
+            <div class="fixed top-4 right-4 z-50 space-y-2" x-data="{ messages: [] }" x-init="
+                {% for message in messages %}
+                    messages.push({
+                        text: '{{ message|escapejs }}',
+                        type: '{{ message.tags }}',
+                        id: Math.random()
+                    });
+                {% endfor %}
+                setTimeout(() => {
+                    messages.forEach((msg, index) => {
+                        setTimeout(() => messages.splice(index, 1), (index + 1) * 5000);
+                    });
+                }, 100);
+            ">
+                <template x-for="message in messages" :key="message.id">
+                    <div x-show="true" 
+                         x-transition:enter="transform ease-out duration-300"
+                         x-transition:enter-start="translate-x-full opacity-0"
+                         x-transition:enter-end="translate-x-0 opacity-100"
+                         x-transition:leave="transform ease-in duration-300"
+                         x-transition:leave-start="translate-x-0 opacity-100"
+                         x-transition:leave-end="translate-x-full opacity-0"
+                         :class="{
+                            'bg-success-50 border-success-200 text-success-800': message.type === 'success',
+                            'bg-danger-50 border-danger-200 text-danger-800': message.type === 'error',
+                            'bg-warning-50 border-warning-200 text-warning-800': message.type === 'warning',
+                            'bg-primary-50 border-primary-200 text-primary-800': message.type === 'info'
+                         }"
+                         class="max-w-sm border rounded-lg shadow-lg p-4 cursor-pointer"
+                         @click="messages = messages.filter(m => m.id !== message.id)">
+                        <p class="text-sm font-medium" x-text="message.text"></p>
+                    </div>
+                </template>
+            </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Bottom Navigation (Mobile) -->
+    {% if user.is_authenticated %}
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-30">
+        <div class="grid grid-cols-5 py-2">
+            <a href="{% url 'dashboard:home' %}" class="flex flex-col items-center py-2 px-1 text-center {% if request.resolver_match.app_name == 'dashboard' %}text-primary-600{% else %}text-gray-400{% endif %}">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                </svg>
+                <span class="text-xs mt-1">{% trans 'Inicio' %}</span>
+            </a>
+            
+            <a href="#" class="flex flex-col items-center py-2 px-1 text-center {% if request.resolver_match.app_name == 'spaces' %}text-primary-600{% else %}text-gray-400{% endif %}">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6z" clip-rule="evenodd"/>
+                </svg>
+                <span class="text-xs mt-1">{% trans 'Espacios' %}</span>
+            </a>
+            
+            <a href="#" class="flex flex-col items-center py-2 px-1 text-center {% if request.resolver_match.app_name == 'expenses' %}text-primary-600{% else %}text-gray-400{% endif %}">
+                <div class="bg-primary-600 text-white rounded-full w-12 h-12 flex items-center justify-center -mt-2 shadow-lg">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <span class="text-xs mt-1">{% trans 'Gastos' %}</span>
+            </a>
+            
+            <a href="#" class="flex flex-col items-center py-2 px-1 text-center {% if request.resolver_match.app_name == 'budgets' %}text-primary-600{% else %}text-gray-400{% endif %}">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                </svg>
+                <span class="text-xs mt-1">{% trans 'Presupuestos' %}</span>
+            </a>
+            
+            <button @click="$refs.userMenu.style.display = $refs.userMenu.style.display === 'block' ? 'none' : 'block'" class="flex flex-col items-center py-2 px-1 text-center text-gray-400">
+                <div class="h-6 w-6 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-medium">
+                    {{ user.first_name|first|default:user.email|first|upper }}
+                </div>
+                <span class="text-xs mt-1">{% trans 'Perfil' %}</span>
+            </button>
+        </div>
+        
+        <!-- Mobile User Menu -->
+        <div x-ref="userMenu" style="display: none;" class="absolute bottom-full right-4 mb-2 w-48 bg-white rounded-lg shadow-lg border py-2">
+            <div class="px-4 py-2 text-sm text-gray-700 border-b">
+                <div class="font-medium">{{ user.get_full_name|default:user.username }}</div>
+                <div class="text-gray-500 text-xs">{{ user.email }}</div>
+            </div>
+            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{% trans 'Configuración' %}</a>
+            <a href="{% url 'authentication:logout' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{% trans 'Cerrar Sesión' %}</a>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- PWA Install Prompt -->
+    <div x-data="pwaInstall()" x-show="showInstallPrompt" 
+         class="fixed bottom-0 left-0 right-0 bg-primary-600 text-white p-4 transform transition-transform duration-300 z-40"
+         x-transition:enter="translate-y-full"
+         x-transition:enter-start="translate-y-full"
+         x-transition:enter-end="translate-y-0">
+        <div class="flex items-center justify-between">
+            <div class="flex-1">
+                <p class="text-sm font-medium">{% trans '¡Instala MonAI!' %}</p>
+                <p class="text-xs opacity-90">{% trans 'Accede más rápido desde tu pantalla de inicio' %}</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button @click="installPWA()" class="bg-white text-primary-600 px-3 py-1 rounded text-sm font-medium">
+                    {% trans 'Instalar' %}
+                </button>
+                <button @click="hideInstallPrompt()" class="text-white/80 hover:text-white">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{% static 'js/app.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+    
+    <script>
+        // PWA Installation handling
+        function pwaInstall() {
+            return {
+                showInstallPrompt: false,
+                deferredPrompt: null,
+                
+                init() {
+                    // Listen for beforeinstallprompt event
+                    window.addEventListener('beforeinstallprompt', (e) => {
+                        e.preventDefault();
+                        this.deferredPrompt = e;
+                        this.showInstallPrompt = true;
+                    });
+                    
+                    // Check if already installed
+                    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+                        this.showInstallPrompt = false;
+                    }
+                },
+                
+                async installPWA() {
+                    if (this.deferredPrompt) {
+                        this.deferredPrompt.prompt();
+                        const { outcome } = await this.deferredPrompt.userChoice;
+                        
+                        if (outcome === 'accepted') {
+                            console.log('PWA installed');
+                        }
+                        
+                        this.deferredPrompt = null;
+                        this.showInstallPrompt = false;
+                    }
+                },
+                
+                hideInstallPrompt() {
+                    this.showInstallPrompt = false;
+                    // Remember user declined
+                    localStorage.setItem('pwa-install-declined', Date.now());
+                }
+            }
+        }
+        
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/js/sw.js')
+                    .then(function(registration) {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

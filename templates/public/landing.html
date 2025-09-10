@@ -1,0 +1,396 @@
+{% extends "public/base_public.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Wallai - Shared Finances Made Simple{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="relative bg-gradient-to-br from-green-50 to-teal-50 min-h-screen">
+  <!-- Navigation -->
+  <nav class="relative z-10 bg-white/80 backdrop-blur-md border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-4">
+        <!-- Logo - Increased size -->
+        <div class="flex-shrink-0">
+          <img src="https://res.cloudinary.com/dpkvlxhyn/image/upload/v1757531595/logo-horizontal_az18yr.png" 
+               alt="Wallai" 
+               class="h-12 w-auto">
+        </div>
+        
+        <!-- Desktop Navigation -->
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="#features" class="text-gray-700 hover:text-wallai-green transition-colors">
+            Features
+          </a>
+          <a href="#pricing" class="text-gray-700 hover:text-wallai-green transition-colors">
+            Pricing
+          </a>
+          <a href="#contact" class="text-gray-700 hover:text-wallai-green transition-colors">
+            Contact
+          </a>
+        </div>
+        
+        <!-- CTA Buttons -->
+        <div class="hidden md:flex items-center space-x-4">
+          <a href="{% url 'authentication:login' %}" 
+             class="text-wallai-green hover:text-wallai-blue transition-colors font-medium">
+            Sign In
+          </a>
+          <a href="{% url 'authentication:register' %}" 
+             class="wallai-btn">
+            Get Started Free
+          </a>
+        </div>
+        
+        <!-- Mobile Menu Button -->
+        <button class="md:hidden p-2 text-gray-700">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Hero Content -->
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+    <div class="text-center">
+      <!-- Logo -->
+      <img src="https://res.cloudinary.com/dpkvlxhyn/image/upload/v1757531600/logo-vertical_nioobl.png" 
+           alt="Wallai" 
+           class="h-32 w-auto mx-auto mb-8 wallai-float">
+      
+      <!-- Hero Title -->
+      <h1 class="text-4xl font-bold text-gray-900 sm:text-5xl md:text-6xl mb-6">
+        Shared finances<br>
+        <span class="wallai-gradient-text">made simple</span>
+      </h1>
+      
+      <!-- Hero Subtitle -->
+      <p class="mt-3 max-w-md mx-auto text-base text-gray-600 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl mb-12">
+        The first app that makes managing shared expenses as easy as sending a message. Wallai transforms how families handle money together.
+      </p>
+      
+      <!-- CTA Buttons -->
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+        <a href="{% url 'authentication:register' %}" class="wallai-btn text-lg px-8 py-4">
+          Get Started Free
+          <svg class="w-5 h-5 ml-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+          </svg>
+        </a>
+        <a href="{% url 'authentication:login' %}" class="wallai-btn-outline text-lg px-8 py-4">
+          Sign In
+        </a>
+      </div>
+      
+      <!-- App Preview Mockup -->
+      <div class="relative max-w-sm mx-auto">
+        <div class="wallai-card bg-white p-6 rounded-3xl shadow-2xl">
+          <!-- Mock App Interface -->
+          <div class="text-center mb-4">
+            <img src="https://res.cloudinary.com/dpkvlxhyn/image/upload/v1757531592/logo_zp2pxq.png" 
+                 alt="Wallai" 
+                 class="h-8 w-8 mx-auto mb-2">
+            <h3 class="text-sm font-medium text-gray-600">Family Balance</h3>
+            <p class="text-2xl font-bold wallai-gradient-text">$2,450.00</p>
+          </div>
+          
+          <!-- Mock Expense Cards -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-wallai-gradient rounded-full flex items-center justify-center text-white text-lg">
+                  🛒
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm font-medium text-gray-900">Groceries</p>
+                  <p class="text-xs text-gray-500">Today</p>
+                </div>
+              </div>
+              <p class="text-sm font-semibold text-gray-900">-$120.50</p>
+            </div>
+            
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-wallai-secondary rounded-full flex items-center justify-center text-white text-lg">
+                  ⚡
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm font-medium text-gray-900">Utilities</p>
+                  <p class="text-xs text-gray-500">Yesterday</p>
+                </div>
+              </div>
+              <p class="text-sm font-semibold text-gray-900">-$85.00</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Floating Stats -->
+        <div class="absolute -top-4 -right-4 bg-white p-3 rounded-xl shadow-lg wallai-float">
+          <p class="text-xs text-gray-500">Savings</p>
+          <p class="text-lg font-bold text-wallai-green">92%</p>
+        </div>
+        
+        <div class="absolute -bottom-4 -left-4 bg-white p-3 rounded-xl shadow-lg wallai-float" style="animation-delay: 1s;">
+          <p class="text-xs text-gray-500">This month</p>
+          <p class="text-lg font-bold text-wallai-teal">$1.2K</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features Section -->
+<section id="features" class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-bold text-gray-900 sm:text-4xl mb-6">
+                Why choose <span class="wallai-gradient-text">Wallai</span>?
+            </h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Simplify shared financial management with intuitive and powerful tools designed for modern families
+            </p>
+        </div>
+        
+        <div class="grid md:grid-cols-3 gap-8">
+            <div class="wallai-card text-center group hover:shadow-xl transition-shadow duration-300">
+                <div class="mb-6">
+                    <div class="w-16 h-16 bg-wallai-gradient rounded-2xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Family Collaboration</h3>
+                <p class="text-gray-600 leading-relaxed">
+                    Invite the whole family and manage expenses together. Every member can add expenses while maintaining complete transparency.
+                </p>
+            </div>
+            
+            <div class="wallai-card text-center group hover:shadow-xl transition-shadow duration-300">
+                <div class="mb-6">
+                    <div class="w-16 h-16 bg-wallai-secondary rounded-2xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Auto-split Bills</h3>
+                <p class="text-gray-600 leading-relaxed">
+                    Forget complicated math. Wallai automatically calculates who owes what and when, splitting expenses fairly among everyone.
+                </p>
+            </div>
+            
+            <div class="wallai-card text-center group hover:shadow-xl transition-shadow duration-300">
+                <div class="mb-6">
+                    <div class="w-16 h-16 bg-wallai-accent rounded-2xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Smart Analytics</h3>
+                <p class="text-gray-600 leading-relaxed">
+                    Visualize spending patterns, set budgets, and receive personalized insights to optimize your family's finances.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-20 bg-gradient-to-br from-green-400 via-teal-400 to-blue-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="bg-white/10 backdrop-blur-lg rounded-3xl p-12 max-w-4xl mx-auto border border-white/20">
+            <h2 class="text-3xl font-bold text-white sm:text-4xl mb-6">
+                Ready to <span class="text-white">simplify</span> your finances?
+            </h2>
+            <p class="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
+                Join thousands of families who already use Wallai to manage their shared expenses intelligently and hassle-free.
+            </p>
+            
+            <!-- CTA Actions -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+                <a href="{% url 'authentication:register' %}" 
+                   class="bg-white text-gray-900 px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                    <span>Get Started Free</span>
+                    <svg class="w-5 h-5 ml-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                    </svg>
+                </a>
+                <a href="{% url 'authentication:login' %}" 
+                   class="border-2 border-white text-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-gray-900 transition-all duration-200">
+                    I have an account
+                </a>
+            </div>
+            
+            <!-- Trust Indicators -->
+            <div class="flex items-center justify-center gap-6 text-sm text-white/75 flex-wrap">
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    100% Secure
+                </div>
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    No commitment
+                </div>
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
+                    </svg>
+                    24/7 Support
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="bg-gray-900 text-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid md:grid-cols-4 gap-8 mb-8">
+            <!-- Brand -->
+            <div class="md:col-span-2">
+                <img src="https://res.cloudinary.com/dpkvlxhyn/image/upload/v1757531595/logo-horizontal_az18yr.png" 
+                     alt="Wallai" 
+                     class="h-8 w-auto mb-4 brightness-0 invert">
+                <p class="text-gray-300 mb-6 max-w-md">
+                    The simplest and most effective platform for managing shared family finances. Transform how you handle money together.
+                </p>
+                <div class="flex items-center space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-wallai-green transition-colors">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-wallai-green transition-colors">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-wallai-green transition-colors">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.174-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.846-1.378l-.774 2.978c-.277 1.085-1.030 2.45-1.535 3.271C9.525 23.812 10.748 24 12.017 24c6.624 0 11.99-5.367 11.99-11.987C24.007 5.367 18.641.001 12.017.001z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Links -->
+            <div>
+                <h5 class="font-semibold text-white mb-4">Product</h5>
+                <ul class="space-y-2 text-gray-300">
+                    <li><a href="#features" class="hover:text-white transition-colors">Features</a></li>
+                    <li><a href="#pricing" class="hover:text-white transition-colors">Pricing</a></li>
+                    <li><a href="#security" class="hover:text-white transition-colors">Security</a></li>
+                    <li><a href="#integrations" class="hover:text-white transition-colors">Integrations</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h5 class="font-semibold text-white mb-4">Support</h5>
+                <ul class="space-y-2 text-gray-300">
+                    <li><a href="#help" class="hover:text-white transition-colors">Help Center</a></li>
+                    <li><a href="#contact" class="hover:text-white transition-colors">Contact</a></li>
+                    <li><a href="#terms" class="hover:text-white transition-colors">Terms</a></li>
+                    <li><a href="#privacy" class="hover:text-white transition-colors">Privacy</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="border-t border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <p class="text-gray-400">&copy; 2025 Wallai. All rights reserved.</p>
+            <div class="flex items-center mt-4 md:mt-0">
+                <span class="text-sm text-gray-400">Made with ❤️ for families</span>
+            </div>
+        </div>
+    </div>
+</footer>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Modern landing page interactions
+document.addEventListener('DOMContentLoaded', function() {
+    // Smooth scrolling for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            const targetElement = document.getElementById(targetId);
+            
+            if (targetElement) {
+                const navHeight = 80; // Account for fixed nav
+                const targetPosition = targetElement.offsetTop - navHeight;
+                
+                window.scrollTo({
+                    top: targetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+    
+    // Track CTA clicks for analytics
+    document.querySelectorAll('.btn[href*="register"], .btn[href*="login"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            // Future: Add analytics tracking
+            console.log('CTA clicked:', this.href, 'from:', this.textContent.trim());
+        });
+    });
+    
+    // Add scroll effects for floating elements
+    const floatingElements = document.querySelectorAll('.floating-element');
+    let scrollY = 0;
+    
+    function updateFloatingElements() {
+        scrollY = window.pageYOffset;
+        
+        floatingElements.forEach(function(element, index) {
+            const speed = 0.5 + (index * 0.1);
+            const yPos = -(scrollY * speed);
+            element.style.transform = `translateY(${yPos}px)`;
+        });
+    }
+    
+    // Smooth scroll effect for floating elements
+    window.addEventListener('scroll', function() {
+        requestAnimationFrame(updateFloatingElements);
+    });
+    
+    // Mobile menu toggle (if needed in future)
+    const mobileMenuBtn = document.querySelector('[data-mobile-menu]');
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', function() {
+            // Future: Add mobile menu toggle
+        });
+    }
+    
+    // Add intersection observer for animations
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animate-in');
+            }
+        });
+    }, observerOptions);
+    
+    // Observe elements for animation
+    document.querySelectorAll('.feature-card, .app-preview, .glass-card').forEach(function(el) {
+        observer.observe(el);
+    });
+});
+</script>
+{% endblock %}

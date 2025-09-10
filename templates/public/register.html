@@ -1,0 +1,195 @@
+{% extends "public/base_public.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Create Account - Wallai{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-green-400 via-teal-400 to-blue-500">
+    <div class="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <img src="https://res.cloudinary.com/dpkvlxhyn/image/upload/v1757531600/logo-vertical_nioobl.png" 
+                     alt="Wallai" 
+                     class="h-24 w-auto mx-auto mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">
+                    Create Account
+                </h2>
+                <p class="text-gray-600">
+                    Join Wallai and simplify your family finances
+                </p>
+            </div>
+
+            <!-- Register Form -->
+            <div>
+                <form method="post" class="space-y-6" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Email Field -->
+                    <div>
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.email.label }}
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.email.help_text }}</p>
+                        {% endif %}
+                        {% if form.email.errors %}
+                            <div class="mt-1">
+                                {% for error in form.email.errors %}
+                                    <p class="text-sm text-danger">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Username Field -->
+                    <div>
+                        <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.username.label }}
+                        </label>
+                        {{ form.username }}
+                        {% if form.username.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.username.help_text }}</p>
+                        {% endif %}
+                        {% if form.username.errors %}
+                            <div class="mt-1">
+                                {% for error in form.username.errors %}
+                                    <p class="text-sm text-danger">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Password Field -->
+                    <div>
+                        <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.password1.label }}
+                        </label>
+                        {{ form.password1 }}
+                        {% if form.password1.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.password1.help_text }}</p>
+                        {% endif %}
+                        {% if form.password1.errors %}
+                            <div class="mt-1">
+                                {% for error in form.password1.errors %}
+                                    <p class="text-sm text-danger">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Confirm Password Field -->
+                    <div>
+                        <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.password2.label }}
+                        </label>
+                        {{ form.password2 }}
+                        {% if form.password2.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.password2.help_text }}</p>
+                        {% endif %}
+                        {% if form.password2.errors %}
+                            <div class="mt-1">
+                                {% for error in form.password2.errors %}
+                                    <p class="text-sm text-danger">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Terms and Conditions -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="terms" name="terms" type="checkbox" required 
+                                   class="form-checkbox focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded">
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="terms" class="text-gray-700">
+                                {% trans "Acepto los" %}
+                                <a href="#" class="text-primary hover:text-primary-dark">{% trans "Términos y Condiciones" %}</a>
+                                {% trans "y la" %}
+                                <a href="#" class="text-primary hover:text-primary-dark">{% trans "Política de Privacidad" %}</a>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Form Errors -->
+                    {% if form.non_field_errors %}
+                        <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                            {% for error in form.non_field_errors %}
+                                <p class="text-sm text-red-700">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Submit Button -->
+                    <div>
+                        <button type="submit" class="w-full btn btn-primary py-3 text-base font-medium">
+                            {% trans "Crear Cuenta" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Login Link -->
+        <div class="text-center">
+            <p class="text-gray-600">
+                {% trans "¿Ya tienes una cuenta?" %}
+                <a href="{% url 'authentication:login' %}" class="text-primary hover:text-primary-dark font-medium">
+                    {% trans "Inicia sesión aquí" %}
+                </a>
+            </p>
+        </div>
+
+        <!-- Back to Home -->
+        <div class="text-center">
+            <a href="{% url 'public:home' %}" class="text-gray-500 hover:text-gray-700 text-sm">
+                ← {% trans "Volver al inicio" %}
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus first input field
+    const firstInput = document.querySelector('input[type="email"]');
+    if (firstInput) {
+        firstInput.focus();
+    }
+    
+    // Real-time password strength indicator (future enhancement)
+    const password1 = document.querySelector('input[name="password1"]');
+    const password2 = document.querySelector('input[name="password2"]');
+    
+    if (password1 && password2) {
+        // Add password matching validation
+        password2.addEventListener('input', function() {
+            if (password1.value !== password2.value) {
+                password2.setCustomValidity('{% trans "Las contraseñas no coinciden" %}');
+            } else {
+                password2.setCustomValidity('');
+            }
+        });
+    }
+    
+    // Terms checkbox validation
+    const form = document.querySelector('form');
+    const termsCheckbox = document.getElementById('terms');
+    
+    if (form && termsCheckbox) {
+        form.addEventListener('submit', function(e) {
+            if (!termsCheckbox.checked) {
+                e.preventDefault();
+                alert('{% trans "Debes aceptar los términos y condiciones" %}');
+                termsCheckbox.focus();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
