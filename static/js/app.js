@@ -1,8 +1,8 @@
-// MonAI Main Application JavaScript
+// Wallai Main Application JavaScript
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('MonAI App initialized');
+    console.log('Wallai App initialized');
     
     // Initialize PWA features
     initializePWA();
@@ -60,7 +60,7 @@ function showOfflineBanner() {
         banner = document.createElement('div');
         banner.id = 'offline-banner';
         banner.className = 'fixed top-0 left-0 right-0 bg-warning-500 text-white text-center py-2 px-4 text-sm z-50';
-        banner.innerHTML = '⚠️ Sin conexión - Trabajando en modo offline';
+        banner.innerHTML = '⚠️ No connection - Working in offline mode';
         document.body.insertBefore(banner, document.body.firstChild);
     }
     
@@ -175,7 +175,7 @@ function initializeTooltips() {
 }
 
 // Utility functions
-const MonAI = {
+const Wallai = {
     // Show notification
     showNotification: function(message, type = 'info', duration = 5000) {
         const notification = document.createElement('div');
@@ -229,8 +229,8 @@ const MonAI = {
             <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm mx-4">
                 <p class="text-gray-800 mb-4">${message}</p>
                 <div class="flex justify-end space-x-3">
-                    <button class="btn-secondary" onclick="this.closest('.fixed').remove()">Cancelar</button>
-                    <button class="btn-primary" id="confirm-yes">Confirmar</button>
+                    <button class="btn-secondary" onclick="this.closest('.fixed').remove()">Cancel</button>
+                    <button class="btn-primary" id="confirm-yes">Confirm</button>
                 </div>
             </div>
         `;
@@ -251,7 +251,7 @@ const MonAI = {
     },
     
     // Format currency
-    formatCurrency: function(amount, currency = 'USD', locale = 'es-MX') {
+    formatCurrency: function(amount, currency = 'USD', locale = 'en-US') {
         return new Intl.NumberFormat(locale, {
             style: 'currency',
             currency: currency
@@ -300,9 +300,9 @@ const MonAI = {
                 console.error('API request failed:', error);
                 
                 if (!navigator.onLine) {
-                    MonAI.showNotification('Sin conexión a internet', 'error');
+                    Wallai.showNotification('No internet connection', 'error');
                 } else {
-                    MonAI.showNotification('Error en la solicitud', 'error');
+                    Wallai.showNotification('Request error', 'error');
                 }
                 
                 throw error;
@@ -311,5 +311,5 @@ const MonAI = {
     }
 };
 
-// Make MonAI globally available
-window.MonAI = MonAI;
+// Make Wallai globally available
+window.Wallai = Wallai;

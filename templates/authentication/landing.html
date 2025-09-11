@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% load i18n %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -9,10 +8,10 @@
         <!-- Logo and Welcome -->
         <div class="text-center mb-8">
             <div class="mx-auto h-20 w-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg">
-                <span class="text-2xl font-bold text-primary-600">M</span>
+                <span class="text-2xl font-bold text-primary-600">W</span>
             </div>
-            <h1 class="text-3xl font-bold text-white mb-2">{% trans 'MonAI' %}</h1>
-            <p class="text-primary-100 text-lg">{% trans 'Gestión financiera compartida' %}</p>
+            <h1 class="text-3xl font-bold text-white mb-2">Wallai</h1>
+            <p class="text-primary-100 text-lg">Shared Financial Management</p>
         </div>
 
         <!-- Features -->
@@ -25,8 +24,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-medium text-gray-900">{% trans 'Espacios Compartidos' %}</h3>
-                        <p class="text-sm text-gray-500">{% trans 'Gestiona gastos con familia y amigos' %}</p>
+                        <h3 class="text-sm font-medium text-gray-900">Shared Spaces</h3>
+                        <p class="text-sm text-gray-500">Manage expenses with family and friends</p>
                     </div>
                 </div>
                 
@@ -37,8 +36,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-medium text-gray-900">{% trans 'Presupuestos Inteligentes' %}</h3>
-                        <p class="text-sm text-gray-500">{% trans 'Planifica y controla tus gastos mensuales' %}</p>
+                        <h3 class="text-sm font-medium text-gray-900">Smart Budgets</h3>
+                        <p class="text-sm text-gray-500">Plan and control your monthly expenses</p>
                     </div>
                 </div>
                 
@@ -49,8 +48,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-medium text-gray-900">{% trans 'Seguimiento en Tiempo Real' %}</h3>
-                        <p class="text-sm text-gray-500">{% trans 'Ve tus gastos y balances al instante' %}</p>
+                        <h3 class="text-sm font-medium text-gray-900">Real-Time Tracking</h3>
+                        <p class="text-sm text-gray-500">See your expenses and balances instantly</p>
                     </div>
                 </div>
             </div>
@@ -59,17 +58,17 @@
         <!-- Action Buttons -->
         <div class="space-y-3">
             <a href="{% url 'authentication:register' %}" class="w-full btn-primary flex justify-center py-3 text-base">
-                {% trans 'Comenzar Gratis' %}
+                Get Started Free
             </a>
             <a href="{% url 'authentication:login' %}" class="w-full btn-secondary flex justify-center py-3 text-base">
-                {% trans 'Ya tengo cuenta' %}
+                I Already Have An Account
             </a>
         </div>
 
         <!-- PWA Install Hint -->
         <div class="text-center mt-6">
             <p class="text-primary-100 text-sm">
-                {% trans '💡 Instala la app para una mejor experiencia' %}
+                💡 Install the app for a better experience
             </p>
         </div>
     </div>

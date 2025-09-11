@@ -1,13 +1,12 @@
 {% extends "public/base_public.html" %}
 {% load static %}
-{% load i18n %}
 
 {% block title %}Sign In - Wallai{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-green-400 via-teal-400 to-blue-500">
+<div class="min-h-screen bg-white">
     <div class="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+        <div class="max-w-md w-full">
             <!-- Header -->
             <div class="text-center mb-8">
                 <img src="https://res.cloudinary.com/dpkvlxhyn/image/upload/v1757531600/logo-vertical_nioobl.png" 
@@ -35,7 +34,7 @@
                                name="{{ form.email.name }}" 
                                id="{{ form.email.id_for_label }}"
                                class="wallai-input"
-                               placeholder="tu@email.com"
+                               placeholder="you@email.com"
                                {% if form.email.value %}value="{{ form.email.value }}"{% endif %}>
                         {% if form.email.errors %}
                             <div class="mt-2">

@@ -6,7 +6,6 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.generic import FormView, RedirectView
-from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
@@ -55,7 +54,7 @@ class LoginView(FormView):
         
         messages.success(
             self.request, 
-            _('¡Bienvenido de vuelta, {}!').format(user.username)
+            'Welcome back, {}!'.format(user.username)
         )
         
         # Get next URL if provided
@@ -65,7 +64,7 @@ class LoginView(FormView):
     def form_invalid(self, form):
         messages.error(
             self.request,
-            _('Por favor corrige los errores en el formulario.')
+            'Please correct the errors in the form.'
         )
         return super().form_invalid(form)
 
@@ -96,7 +95,7 @@ class RegisterView(FormView):
         
         messages.success(
             self.request,
-            _('¡Cuenta creada exitosamente! Bienvenido a MonAI, {}!').format(user.username)
+            'Account created successfully! Welcome to Wallai, {}!'.format(user.username)
         )
         
         # Future: Trigger personal space creation signal here
@@ -107,7 +106,7 @@ class RegisterView(FormView):
     def form_invalid(self, form):
         messages.error(
             self.request,
-            _('Por favor corrige los errores en el formulario.')
+            'Please correct the errors in the form.'
         )
         return super().form_invalid(form)
 
@@ -126,7 +125,7 @@ class LogoutView(RedirectView):
             logout(request)
             messages.info(
                 request,
-                _('Has cerrado sesión exitosamente. ¡Hasta pronto, {}!').format(username)
+                'You have been logged out successfully. See you soon, {}!'.format(username)
             )
         return super().get(request, *args, **kwargs)
 

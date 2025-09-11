@@ -1,20 +1,19 @@
 {% load static %}
-{% load i18n %}
 <!DOCTYPE html>
-<html lang="{% get_current_language %}">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="description" content="{% trans 'MonAI - Gestión financiera compartida para familias y amigos' %}">
-    <meta name="keywords" content="finanzas, gastos, presupuesto, compartido, familia">
-    <meta name="author" content="MonAI Team">
+    <meta name="description" content="Wallai - Shared financial management for families and friends">
+    <meta name="keywords" content="finances, expenses, budget, shared, family, fintech">
+    <meta name="author" content="Wallai Team">
     
     <!-- Progressive Web App -->
     <meta name="theme-color" content="#3b82f6">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="MonAI">
+    <meta name="apple-mobile-web-app-title" content="Wallai">
     
     <!-- PWA Icons -->
     <link rel="apple-touch-icon" sizes="72x72" href="{% static 'pwa/icon-72x72.png' %}">
@@ -33,7 +32,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'pwa/icon-72x72.png' %}">
     <link rel="shortcut icon" href="{% static 'pwa/icon-72x72.png' %}">
     
-    <title>{% block title %}MonAI - {% trans 'Finanzas Compartidas' %}{% endblock %}</title>
+    <title>{% block title %}Wallai - Shared Financial Management{% endblock %}</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -90,7 +89,7 @@
 <body class="bg-gray-50 font-sans min-h-screen flex flex-col">
     <!-- Skip to main content for accessibility -->
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-600 text-white px-4 py-2 rounded-md z-50">
-        {% trans 'Saltar al contenido principal' %}
+        Skip to main content
     </a>
 
     <!-- Top Navigation (Desktop) -->
@@ -99,8 +98,8 @@
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 flex items-center">
-                        <img class="h-8 w-auto" src="{% static 'images/logo.svg' %}" alt="MonAI">
-                        <span class="ml-2 text-xl font-bold text-primary-900">MonAI</span>
+                        <img class="h-8 w-auto" src="{% static 'images/logo.svg' %}" alt="Wallai">
+                        <span class="ml-2 text-xl font-bold text-primary-900">Wallai</span>
                     </div>
                 </div>
                 
@@ -109,14 +108,13 @@
                         <!-- Language Switcher -->
                         <div class="relative" x-data="{ open: false }">
                             <button @click="open = !open" class="flex items-center text-sm text-gray-500 hover:text-gray-700">
-                                <span class="sr-only">{% trans 'Cambiar idioma' %}</span>
-                                🌐 <span class="ml-1">{% get_current_language %}</span>
+                                <span class="sr-only">Change language</span>
+                                🌐 <span class="ml-1">EN</span>
                             </button>
                             <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                                 <form method="post" action="{% url 'set_language' %}">
                                     {% csrf_token %}
                                     <input name="next" type="hidden" value="{{ request.get_full_path|slice:'1:' }}">
-                                    <button type="submit" name="language" value="es" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🇪🇸 Español</button>
                                     <button type="submit" name="language" value="en" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🇺🇸 English</button>
                                 </form>
                             </div>
@@ -125,7 +123,7 @@
                         <!-- User Menu -->
                         <div class="relative" x-data="{ open: false }">
                             <button @click="open = !open" class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                                <span class="sr-only">{% trans 'Abrir menú de usuario' %}</span>
+                                <span class="sr-only">Open user menu</span>
                                 <div class="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center text-white font-medium">
                                     {{ user.first_name|first|default:user.email|first|upper }}
                                 </div>
@@ -135,13 +133,13 @@
                                     <div class="font-medium">{{ user.get_full_name|default:user.username }}</div>
                                     <div class="text-gray-500">{{ user.email }}</div>
                                 </div>
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{% trans 'Configuración' %}</a>
-                                <a href="{% url 'authentication:logout' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{% trans 'Cerrar Sesión' %}</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
+                                <a href="{% url 'authentication:logout' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sign Out</a>
                             </div>
                         </div>
                     {% else %}
-                        <a href="{% url 'authentication:login' %}" class="text-primary-600 hover:text-primary-500">{% trans 'Iniciar Sesión' %}</a>
-                        <a href="{% url 'authentication:register' %}" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium">{% trans 'Registrarse' %}</a>
+                        <a href="{% url 'authentication:login' %}" class="text-primary-600 hover:text-primary-500">Sign In</a>
+                        <a href="{% url 'authentication:register' %}" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium">Sign Up</a>
                     {% endif %}
                 </div>
             </div>
@@ -149,7 +147,7 @@
     </nav>
 
     <!-- Main Content -->
-    <main id="main-content" class="flex-1 pb-20 md:pb-0">
+    <main id="main-content" class="flex-1 pb-28 md:pb-0">
         <!-- Messages/Alerts -->
         {% if messages %}
             <div class="fixed top-4 right-4 z-50 space-y-2" x-data="{ messages: [] }" x-init="
@@ -193,54 +191,71 @@
 
     <!-- Bottom Navigation (Mobile) -->
     {% if user.is_authenticated %}
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-30">
-        <div class="grid grid-cols-5 py-2">
-            <a href="{% url 'dashboard:home' %}" class="flex flex-col items-center py-2 px-1 text-center {% if request.resolver_match.app_name == 'dashboard' %}text-primary-600{% else %}text-gray-400{% endif %}">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-                </svg>
-                <span class="text-xs mt-1">{% trans 'Inicio' %}</span>
-            </a>
-            
-            <a href="#" class="flex flex-col items-center py-2 px-1 text-center {% if request.resolver_match.app_name == 'spaces' %}text-primary-600{% else %}text-gray-400{% endif %}">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6z" clip-rule="evenodd"/>
-                </svg>
-                <span class="text-xs mt-1">{% trans 'Espacios' %}</span>
-            </a>
-            
-            <a href="#" class="flex flex-col items-center py-2 px-1 text-center {% if request.resolver_match.app_name == 'expenses' %}text-primary-600{% else %}text-gray-400{% endif %}">
-                <div class="bg-primary-600 text-white rounded-full w-12 h-12 flex items-center justify-center -mt-2 shadow-lg">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+    <nav class="fixed bottom-0 left-0 right-0 md:hidden z-50">
+        <div class="curved-nav px-6 pb-6 pt-4">
+            <!-- Navigation Grid -->
+            <div class="grid grid-cols-5 relative">
+                <!-- Home -->
+                <a href="{% url 'dashboard:home' %}" class="nav-button {% if request.resolver_match.app_name == 'dashboard' %}active{% else %}text-gray-400{% endif %}">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12.707 2.293a1 1 0 00-1.414 0l-9 9a1 1 0 001.414 1.414L4 12.414V19a1 1 0 001 1h4a1 1 0 001-1v-3a1 1 0 011-1h2a1 1 0 011 1v3a1 1 0 001 1h4a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-9-9z"/>
                     </svg>
+                    <span class="nav-text">Home</span>
+                </a>
+                
+                <!-- Spaces -->
+                <a href="#" class="nav-button {% if request.resolver_match.app_name == 'spaces' %}active{% else %}text-gray-400{% endif %}">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    <span class="nav-text">Spaces</span>
+                </a>
+                
+                <!-- Center Button (Add Expense) -->
+                <div class="flex justify-center">
+                    <a href="#" class="center-button">
+                        <svg class="center-icon" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                        </svg>
+                    </a>
                 </div>
-                <span class="text-xs mt-1">{% trans 'Gastos' %}</span>
-            </a>
-            
-            <a href="#" class="flex flex-col items-center py-2 px-1 text-center {% if request.resolver_match.app_name == 'budgets' %}text-primary-600{% else %}text-gray-400{% endif %}">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
-                </svg>
-                <span class="text-xs mt-1">{% trans 'Presupuestos' %}</span>
-            </a>
-            
-            <button @click="$refs.userMenu.style.display = $refs.userMenu.style.display === 'block' ? 'none' : 'block'" class="flex flex-col items-center py-2 px-1 text-center text-gray-400">
-                <div class="h-6 w-6 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-medium">
-                    {{ user.first_name|first|default:user.email|first|upper }}
-                </div>
-                <span class="text-xs mt-1">{% trans 'Perfil' %}</span>
-            </button>
-        </div>
-        
-        <!-- Mobile User Menu -->
-        <div x-ref="userMenu" style="display: none;" class="absolute bottom-full right-4 mb-2 w-48 bg-white rounded-lg shadow-lg border py-2">
-            <div class="px-4 py-2 text-sm text-gray-700 border-b">
-                <div class="font-medium">{{ user.get_full_name|default:user.username }}</div>
-                <div class="text-gray-500 text-xs">{{ user.email }}</div>
+                
+                <!-- Budgets -->
+                <a href="#" class="nav-button {% if request.resolver_match.app_name == 'budgets' %}active{% else %}text-gray-400{% endif %}">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M16 8v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2m8 0V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m8 0h2a2 2 0 012 2v2M8 7h4m0 0v4m-4-4h8m-4-3v3"/>
+                    </svg>
+                    <span class="nav-text">Budget</span>
+                </a>
+                
+                <!-- Profile -->
+                <button @click="$refs.userMenu.style.display = $refs.userMenu.style.display === 'block' ? 'none' : 'block'" class="nav-button text-gray-400">
+                    <div class="nav-icon rounded-full bg-gradient-to-r from-green-400 to-teal-400 flex items-center justify-center text-white text-xs font-medium">
+                        {{ user.first_name|first|default:user.email|first|upper }}
+                    </div>
+                    <span class="nav-text">Profile</span>
+                </button>
             </div>
-            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{% trans 'Configuración' %}</a>
-            <a href="{% url 'authentication:logout' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{% trans 'Cerrar Sesión' %}</a>
+            
+            <!-- Mobile User Menu -->
+            <div x-ref="userMenu" style="display: none;" class="absolute bottom-full right-4 mb-8 w-48 bg-white rounded-xl shadow-xl border py-2">
+                <div class="px-4 py-3 text-sm text-gray-700 border-b border-gray-100">
+                    <div class="font-medium">{{ user.get_full_name|default:user.username }}</div>
+                    <div class="text-gray-500 text-xs mt-1">{{ user.email }}</div>
+                </div>
+                <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+                    <svg class="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+                    </svg>
+                    Settings
+                </a>
+                <a href="{% url 'authentication:logout' %}" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+                    <svg class="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
+                    </svg>
+                    Sign Out
+                </a>
+            </div>
         </div>
     </nav>
     {% endif %}
@@ -253,12 +268,12 @@
          x-transition:enter-end="translate-y-0">
         <div class="flex items-center justify-between">
             <div class="flex-1">
-                <p class="text-sm font-medium">{% trans '¡Instala MonAI!' %}</p>
-                <p class="text-xs opacity-90">{% trans 'Accede más rápido desde tu pantalla de inicio' %}</p>
+                <p class="text-sm font-medium">Install Wallai!</p>
+                <p class="text-xs opacity-90">Access faster from your home screen</p>
             </div>
             <div class="flex items-center space-x-2">
                 <button @click="installPWA()" class="bg-white text-primary-600 px-3 py-1 rounded text-sm font-medium">
-                    {% trans 'Instalar' %}
+                    Install
                 </button>
                 <button @click="hideInstallPrompt()" class="text-white/80 hover:text-white">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

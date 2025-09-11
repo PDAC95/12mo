@@ -1,6 +1,5 @@
 from django import forms
 from django.contrib.auth import get_user_model, authenticate
-from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 
 User = get_user_model()
@@ -8,24 +7,24 @@ User = get_user_model()
 class LoginForm(forms.Form):
     """User login form"""
     email = forms.EmailField(
-        label=_("Correo electrónico"),
+        label="Email",
         widget=forms.EmailInput(attrs={
             'class': 'form-input',
-            'placeholder': _('correo@ejemplo.com'),
+            'placeholder': 'you@email.com',
             'autofocus': True,
             'autocomplete': 'email',
         })
     )
     password = forms.CharField(
-        label=_("Contraseña"),
+        label="Password",
         widget=forms.PasswordInput(attrs={
             'class': 'form-input',
-            'placeholder': _('Tu contraseña'),
+            'placeholder': 'Your password',
             'autocomplete': 'current-password',
         })
     )
     remember_me = forms.BooleanField(
-        label=_("Recordarme"),
+        label="Remember me",
         required=False,
         widget=forms.CheckboxInput(attrs={
             'class': 'form-checkbox',
@@ -51,12 +50,12 @@ class LoginForm(forms.Form):
             
             if self.user_cache is None:
                 raise forms.ValidationError(
-                    _("Email o contraseña incorrectos."),
+                    "Email or password incorrect.",
                     code='invalid_login'
                 )
             elif not self.user_cache.is_active:
                 raise forms.ValidationError(
-                    _("Esta cuenta está desactivada."),
+                    "This account is deactivated.",
                     code='inactive'
                 )
         
@@ -69,22 +68,22 @@ class LoginForm(forms.Form):
 class RegisterForm(forms.ModelForm):
     """User registration form"""
     password1 = forms.CharField(
-        label=_("Contraseña"),
+        label="Password",
         widget=forms.PasswordInput(attrs={
             'class': 'form-input',
-            'placeholder': _('Mínimo 8 caracteres'),
+            'placeholder': 'Minimum 8 characters',
             'autocomplete': 'new-password',
         }),
-        help_text=_("Tu contraseña debe tener al menos 8 caracteres.")
+        help_text="Your password must have at least 8 characters."
     )
     password2 = forms.CharField(
-        label=_("Confirmar contraseña"),
+        label="Confirm password",
         widget=forms.PasswordInput(attrs={
             'class': 'form-input',
-            'placeholder': _('Confirma tu contraseña'),
+            'placeholder': 'Confirm your password',
             'autocomplete': 'new-password',
         }),
-        help_text=_("Ingresa la misma contraseña para verificación.")
+        help_text="Enter the same password for verification."
     )
     
     class Meta:
@@ -93,29 +92,29 @@ class RegisterForm(forms.ModelForm):
         widgets = {
             'email': forms.EmailInput(attrs={
                 'class': 'form-input',
-                'placeholder': _('correo@ejemplo.com'),
+                'placeholder': 'you@email.com',
                 'autocomplete': 'email',
             }),
             'username': forms.TextInput(attrs={
                 'class': 'form-input', 
-                'placeholder': _('nombreusuario'),
+                'placeholder': 'username',
                 'autocomplete': 'username',
             }),
         }
         help_texts = {
-            'username': _('Requerido. Solo letras, números y @/./+/-/_ caracteres.'),
-            'email': _('Ingresa un email válido. Lo usarás para iniciar sesión.'),
+            'username': 'Required. Letters, numbers and @/./+/-/_ characters only.',
+            'email': 'Enter a valid email. You will use it to log in.',
         }
         labels = {
-            'email': _('Correo electrónico'),
-            'username': _('Nombre de usuario'),
+            'email': 'Email',
+            'username': 'Username',
         }
     
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if email and User.objects.filter(email=email).exists():
             raise ValidationError(
-                _("Ya existe una cuenta con este correo electrónico."),
+                "An account with this email already exists.",
                 code='duplicate_email'
             )
         return email
@@ -124,7 +123,7 @@ class RegisterForm(forms.ModelForm):
         username = self.cleaned_data.get('username')
         if username and User.objects.filter(username=username).exists():
             raise ValidationError(
-                _("Este nombre de usuario ya está en uso."),
+                "This username is already in use.",
                 code='duplicate_username'
             )
         return username
@@ -134,13 +133,13 @@ class RegisterForm(forms.ModelForm):
         if password1:
             if len(password1) < 8:
                 raise ValidationError(
-                    _("La contraseña debe tener al menos 8 caracteres."),
+                    "Password must have at least 8 characters.",
                     code='password_too_short'
                 )
             # Basic password strength validation
             if password1.isdigit():
                 raise ValidationError(
-                    _("La contraseña no puede ser completamente numérica."),
+                    "Password cannot be entirely numeric.",
                     code='password_entirely_numeric'
                 )
         return password1
@@ -151,7 +150,7 @@ class RegisterForm(forms.ModelForm):
         
         if password1 and password2 and password1 != password2:
             raise ValidationError(
-                _("Las contraseñas no coinciden."),
+                "Passwords do not match.",
                 code='password_mismatch'
             )
         return password2

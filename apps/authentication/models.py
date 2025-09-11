@@ -2,12 +2,12 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 class User(AbstractUser):
-    """Extended User model for MonAI"""
+    """Extended User model for Wallai"""
     email = models.EmailField(unique=True)
     preferred_language = models.CharField(
         max_length=10,
-        choices=[('es', 'Español'), ('en', 'English')],
-        default='es'
+        choices=[('en', 'English'), ('es', 'Español')],
+        default='en'
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

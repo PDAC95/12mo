@@ -2,7 +2,6 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
-from django.utils.translation import gettext as _
 from django.http import JsonResponse
 
 class DashboardHomeView(LoginRequiredMixin, TemplateView):
@@ -13,8 +12,8 @@ class DashboardHomeView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update({
-            'title': _('Dashboard'),
-            'welcome_message': _('Bienvenido a MonAI'),
+            'title': 'Dashboard - Wallai',
+            'welcome_message': 'Welcome to Wallai',
             'user': self.request.user,
         })
         return context
@@ -23,10 +22,10 @@ class DashboardHomeView(LoginRequiredMixin, TemplateView):
 def dashboard(request):
     """Legacy dashboard view - kept for compatibility"""
     context = {
-        'page_title': _('Dashboard'),
-        'balance_title': _('Balance'),
-        'expenses_title': _('Expenses'),
-        'budget_title': _('Monthly Budget'),
+        'page_title': 'Dashboard',
+        'balance_title': 'Balance',
+        'expenses_title': 'Expenses',
+        'budget_title': 'Monthly Budget',
     }
     return render(request, 'dashboard/index.html', context)
 

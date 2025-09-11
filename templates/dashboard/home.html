@@ -1,150 +1,220 @@
 {% extends "authenticated/base_authenticated.html" %}
-{% load i18n %}
+{% load static %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}Dashboard - Wallai{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <div class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="py-6">
-                <div class="md:flex md:items-center md:justify-between">
-                    <div class="flex-1 min-w-0">
-                        <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                            {% trans 'Hola' %} {{ user.first_name|default:user.username }}! 👋
-                        </h1>
-                        <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
-                            <div class="mt-2 flex items-center text-sm text-gray-500">
-                                <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
-                                </svg>
-                                {% now "F Y" %}
-                            </div>
-                        </div>
+<div class="min-h-screen bg-gray-50 px-4 py-6 lg:px-8">
+    <!-- Welcome Header -->
+    <div class="max-w-7xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                Hello {{ user.first_name|default:user.username }}! 👋
+            </h1>
+            <p class="text-gray-600">
+                Welcome to your family financial dashboard
+            </p>
+        </div>
+
+        <!-- Family Balance Card -->
+        <div class="wallai-card mb-8 bg-wallai-gradient text-white">
+            <div class="relative overflow-hidden">
+                <div class="relative z-10">
+                    <h2 class="text-sm font-medium text-white/80 mb-2">Family Balance</h2>
+                    <div class="flex items-baseline mb-4">
+                        <span class="text-4xl font-bold">$2,450.00</span>
+                        <span class="ml-3 text-sm font-medium text-white/80">USD</span>
+                    </div>
+                    <div class="flex items-center text-sm">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L10 4.414 6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-white/90">+$340 this month</span>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Welcome Card -->
-        <div class="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg shadow p-6 mb-8">
-            <div class="text-white">
-                <h2 class="text-xl font-semibold mb-2">{% trans '¡Bienvenido a MonAI!' %}</h2>
-                <p class="text-primary-100 mb-4">
-                    {% trans 'Tu plataforma de gestión financiera compartida está lista. Comienza creando tu primer espacio financiero.' %}
-                </p>
-                <button class="bg-white text-primary-600 px-4 py-2 rounded-md font-medium hover:bg-gray-50 transition-colors">
-                    {% trans 'Crear mi primer espacio' %}
-                </button>
+                <!-- Floating decoration -->
+                <div class="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full wallai-float"></div>
+                <div class="absolute -bottom-6 -left-6 w-32 h-32 bg-white/5 rounded-full"></div>
             </div>
         </div>
 
-        <!-- Quick Stats -->
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <button class="wallai-btn p-6 flex flex-col items-center space-y-2 hover:shadow-xl transition-all duration-200">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                <span class="font-medium">Add Expense</span>
+                <span class="text-xs opacity-80">Quick entry</span>
+            </button>
+            
+            <button class="wallai-btn-outline p-6 flex flex-col items-center space-y-2 hover:shadow-lg transition-all duration-200">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span class="font-medium">View Budget</span>
+                <span class="text-xs opacity-80">Monthly plan</span>
+            </button>
+        </div>
+
+        <!-- Monthly Stats -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="wallai-card group hover:shadow-xl transition-shadow duration-300">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
+                    <div class="w-12 h-12 bg-wallai-green/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-6 h-6 text-wallai-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">{% trans 'Espacios Activos' %}</p>
-                        <p class="text-2xl font-semibold text-gray-900">0</p>
+                        <p class="text-sm font-medium text-gray-500">Active Spaces</p>
+                        <p class="text-2xl font-semibold text-gray-900">1</p>
+                        <p class="text-xs text-gray-500">Personal space</p>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="wallai-card group hover:shadow-xl transition-shadow duration-300">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-success-500 rounded-full flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
+                    <div class="w-12 h-12 bg-wallai-teal/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-6 h-6 text-wallai-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">{% trans 'Balance Total' %}</p>
-                        <p class="text-2xl font-semibold text-gray-900">$0.00</p>
+                        <p class="text-sm font-medium text-gray-500">Savings</p>
+                        <p class="text-2xl font-semibold text-gray-900">$1.2K</p>
+                        <p class="text-xs text-green-600">+15% this month</p>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="wallai-card group hover:shadow-xl transition-shadow duration-300">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-warning-500 rounded-full flex items-center justify-center">
-                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
+                    <div class="w-12 h-12 bg-wallai-blue/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-6 h-6 text-wallai-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">{% trans 'Gastos Este Mes' %}</p>
-                        <p class="text-2xl font-semibold text-gray-900">$0.00</p>
+                        <p class="text-sm font-medium text-gray-500">This Month</p>
+                        <p class="text-2xl font-semibold text-gray-900">$890</p>
+                        <p class="text-xs text-gray-500">Expenses</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Getting Started -->
-        <div class="bg-white rounded-lg shadow">
-            <div class="px-6 py-5 border-b border-gray-200">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">
-                    {% trans 'Primeros Pasos' %}
-                </h3>
-                <p class="mt-1 text-sm text-gray-500">
-                    {% trans 'Configura tu cuenta y comienza a gestionar tus finanzas' %}
-                </p>
+        <!-- Recent Activity -->
+        <div class="wallai-card mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-900">Recent Expenses</h3>
+                <button class="text-sm text-wallai-green hover:text-wallai-blue font-medium">View all</button>
             </div>
-            <div class="px-6 py-6">
-                <div class="space-y-4">
-                    <div class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <div class="flex-shrink-0">
-                            <div class="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
-                                <span class="text-white text-sm font-bold">1</span>
-                            </div>
-                        </div>
-                        <div class="ml-4 flex-1">
-                            <h4 class="text-base font-medium text-gray-900">{% trans 'Crear tu primer espacio financiero' %}</h4>
-                            <p class="text-sm text-gray-500">{% trans 'Organiza tus gastos familiares o con amigos en espacios separados' %}</p>
-                        </div>
-                        <div class="flex-shrink-0">
-                            <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+            
+            <div class="space-y-4">
+                <!-- Sample expense items -->
+                <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m-2.4 0L3 3H1m6 10v6a1 1 0 001 1h10a1 1 0 001-1v-6M7 13l-2-5M15 9V7a3 3 0 00-6 0v2"></path>
                             </svg>
                         </div>
-                    </div>
-
-                    <div class="flex items-center p-4 border border-gray-200 rounded-lg opacity-50">
-                        <div class="flex-shrink-0">
-                            <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                                <span class="text-white text-sm font-bold">2</span>
-                            </div>
-                        </div>
-                        <div class="ml-4 flex-1">
-                            <h4 class="text-base font-medium text-gray-500">{% trans 'Configurar presupuestos mensuales' %}</h4>
-                            <p class="text-sm text-gray-400">{% trans 'Define límites de gasto para cada categoría' %}</p>
+                        <div class="ml-3">
+                            <p class="font-medium text-gray-900">Groceries</p>
+                            <p class="text-sm text-gray-500">Yesterday</p>
                         </div>
                     </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-gray-900">-$120.50</p>
+                        <p class="text-xs text-gray-500">Food</p>
+                    </div>
+                </div>
 
-                    <div class="flex items-center p-4 border border-gray-200 rounded-lg opacity-50">
-                        <div class="flex-shrink-0">
-                            <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                                <span class="text-white text-sm font-bold">3</span>
-                            </div>
+                <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
                         </div>
-                        <div class="ml-4 flex-1">
-                            <h4 class="text-base font-medium text-gray-500">{% trans 'Registrar tus primeros gastos' %}</h4>
-                            <p class="text-sm text-gray-400">{% trans 'Comienza a registrar gastos y divide costos con otros' %}</p>
+                        <div class="ml-3">
+                            <p class="font-medium text-gray-900">Utilities</p>
+                            <p class="text-sm text-gray-500">2 days ago</p>
                         </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-gray-900">-$85.00</p>
+                        <p class="text-xs text-gray-500">Bills</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between py-3">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="font-medium text-gray-900">Freelance Payment</p>
+                            <p class="text-sm text-gray-500">3 days ago</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-green-600">+$500.00</p>
+                        <p class="text-xs text-gray-500">Income</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Getting Started (for new users) -->
+        <div class="wallai-card">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Get Started with Wallai</h3>
+                    <p class="text-sm text-gray-600">Set up your financial management in 3 easy steps</p>
+                </div>
+                <div class="wallai-gradient-text text-2xl font-bold">
+                    1/3
+                </div>
+            </div>
+            
+            <div class="space-y-3">
+                <div class="flex items-center p-4 bg-wallai-green/5 border border-wallai-green/20 rounded-xl">
+                    <div class="w-8 h-8 bg-wallai-green rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <h4 class="font-medium text-gray-900">Create your account</h4>
+                        <p class="text-sm text-gray-600">Welcome! Your account is ready to use.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div class="w-8 h-8 bg-wallai-teal rounded-full flex items-center justify-center">
+                        <span class="text-white text-sm font-bold">2</span>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <h4 class="font-medium text-gray-900">Create your first space</h4>
+                        <p class="text-sm text-gray-600">Organize expenses with family or friends</p>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </div>
+
+                <div class="flex items-center p-4 border border-gray-200 rounded-xl opacity-60">
+                    <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                        <span class="text-white text-sm font-bold">3</span>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <h4 class="font-medium text-gray-500">Add your first expense</h4>
+                        <p class="text-sm text-gray-400">Start tracking your spending</p>
                     </div>
                 </div>
             </div>

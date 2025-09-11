@@ -1,6 +1,6 @@
-// MonAI Service Worker
-const CACHE_NAME = 'monai-v1.0.0';
-const API_CACHE_NAME = 'monai-api-v1.0.0';
+// Wallai Service Worker
+const CACHE_NAME = 'wallai-v1.0.0';
+const API_CACHE_NAME = 'wallai-api-v1.0.0';
 
 // Files to cache for offline use
 const STATIC_CACHE_FILES = [
@@ -149,7 +149,7 @@ async function networkFirstStrategy(request) {
             JSON.stringify({
                 success: false,
                 error: {
-                    message: 'No tienes conexión a internet',
+                    message: 'No internet connection',
                     code: 'OFFLINE_ERROR'
                 }
             }),
@@ -169,7 +169,7 @@ self.addEventListener('push', (event) => {
     console.log('[SW] Push received');
     
     const options = {
-        body: 'Tienes nuevas actualizaciones en MonAI',
+        body: 'You have new updates in Wallai',
         icon: '/static/pwa/icon-192x192.png',
         badge: '/static/pwa/icon-72x72.png',
         vibrate: [100, 50, 100],
@@ -180,19 +180,19 @@ self.addEventListener('push', (event) => {
         actions: [
             {
                 action: 'explore',
-                title: 'Ver detalles',
+                title: 'View details',
                 icon: '/static/pwa/icon-96x96.png'
             },
             {
                 action: 'close',
-                title: 'Cerrar',
+                title: 'Close',
                 icon: '/static/pwa/icon-96x96.png'
             }
         ]
     };
     
     event.waitUntil(
-        self.registration.showNotification('MonAI', options)
+        self.registration.showNotification('Wallai', options)
     );
 });
 

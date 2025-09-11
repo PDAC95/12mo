@@ -1,24 +1,22 @@
 <!DOCTYPE html>
-{% get_current_language as LANGUAGE_CODE %}
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" class="h-full bg-gray-50">
+<html lang="en" class="h-full bg-gray-50">
 <head>
     {% load static %}
-    {% load i18n %}
     
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#4ADE80">
     
-    <title>{% block title %}MonAI - {% trans "Gestión Financiera Familiar" %}{% endblock %}</title>
+    <title>{% block title %}Wallai - Shared Financial Management{% endblock %}</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
     
     <!-- PWA Configuration -->
-    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <link rel="manifest" href="{% static 'pwa/manifest.json' %}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="MonAI">
+    <meta name="apple-mobile-web-app-title" content="Wallai">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -27,18 +25,22 @@
             theme: {
                 extend: {
                     colors: {
+                        'wallai-green': '#4ADE80',
+                        'wallai-teal': '#5EEAD4',
+                        'wallai-blue': '#3B82A6',
+                        'wallai-dark': '#1E293B',
                         'primary': {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            200: '#bfdbfe',
-                            300: '#93c5fd',
-                            400: '#60a5fa',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            800: '#1e40af',
-                            900: '#1e3a8a',
-                            DEFAULT: '#2563eb'
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            200: '#a7f3d0',
+                            300: '#6ee7b7',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                            DEFAULT: '#4ADE80'
                         }
                     }
                 }
@@ -48,6 +50,9 @@
     
     <!-- Alpine.js for interactive components -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Wallai Design System -->
+    <link rel="stylesheet" href="{% static 'css/wallai.css' %}">
     
     <!-- Custom styles -->
     <style>
@@ -80,6 +85,86 @@
         .mobile-nav-item.active {
             @apply text-primary;
         }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            height: 72px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            position: relative;
+        }
+
+        .nav-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            color: #9ca3af;
+            padding: 12px 4px;
+        }
+
+        .nav-button.active {
+            color: #4ADE80;
+        }
+
+        .nav-button:hover:not(.center-button) {
+            color: #4ADE80;
+        }
+
+        .center-button {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 68px;
+            height: 68px;
+            background: linear-gradient(135deg, #4ADE80 0%, #5EEAD4 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(74, 222, 128, 0.3);
+            transition: all 0.2s ease;
+            border: 3px solid white;
+            z-index: 10;
+        }
+
+        .center-button:hover {
+            transform: translateX(-50%) scale(1.05);
+            box-shadow: 0 6px 16px rgba(74, 222, 128, 0.4);
+        }
+
+        .center-button:active {
+            transform: translateX(-50%) scale(0.95);
+        }
+
+        .nav-icon {
+            width: 28px;
+            height: 28px;
+            margin-bottom: 4px;
+        }
+
+        .nav-text {
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1;
+        }
+
+        .center-icon {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+
+        /* Safe area support for devices with notches */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .bottom-nav {
+                padding-bottom: env(safe-area-inset-bottom);
+                height: calc(72px + env(safe-area-inset-bottom));
+            }
+        }
     </style>
     
     {% block extra_head %}{% endblock %}
@@ -104,9 +189,11 @@
          x-show="sidebarOpen || window.innerWidth >= 768">
         
         <!-- Sidebar Header -->
-        <div class="flex items-center justify-between h-16 px-4 bg-primary">
+        <div class="flex items-center justify-between h-16 px-4 bg-wallai-gradient">
             <div class="flex items-center">
-                <h1 class="text-xl font-bold text-white">MonAI</h1>
+                <img src="https://res.cloudinary.com/dpkvlxhyn/image/upload/v1757531595/logo-horizontal_az18yr.png" 
+                     alt="Wallai" 
+                     class="h-8 w-auto">
             </div>
             <button @click="sidebarOpen = false" 
                     class="text-white md:hidden hover:text-gray-300 transition-colors">
@@ -120,7 +207,7 @@
         <nav class="mt-8">
             <div class="px-4">
                 <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    {% trans "Principal" %}
+                    Main
                 </p>
             </div>
             
@@ -134,7 +221,7 @@
                                   d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v0a2 2 0 01-2 2H10a2 2 0 01-2-2v0z"></path>
                         </svg>
-                        {% trans "Dashboard" %}
+                        Dashboard
                     </a>
                 </li>
                 
@@ -145,9 +232,9 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                   d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
-                        {% trans "Espacios" %}
+                        Spaces
                         <span class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                            {% trans "Próximamente" %}
+                            Soon
                         </span>
                     </a>
                 </li>
@@ -159,9 +246,9 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                   d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                         </svg>
-                        {% trans "Presupuestos" %}
+                        Budgets
                         <span class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                            {% trans "Próximamente" %}
+                            Soon
                         </span>
                     </a>
                 </li>
@@ -171,11 +258,11 @@
                        class="nav-item opacity-50 cursor-not-allowed">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                  d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
-                        {% trans "Gastos" %}
+                        Expenses
                         <span class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                            {% trans "Próximamente" %}
+                            Soon
                         </span>
                     </a>
                 </li>
@@ -183,7 +270,7 @@
 
             <div class="px-4 mt-8">
                 <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    {% trans "Cuenta" %}
+                    Account
                 </p>
             </div>
             
@@ -196,9 +283,9 @@
                                   d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
-                        {% trans "Configuración" %}
+                        Settings
                         <span class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                            {% trans "Próximamente" %}
+                            Soon
                         </span>
                     </a>
                 </li>
@@ -222,7 +309,7 @@
                 <div class="ml-3">
                     <a href="{% url 'authentication:logout' %}" 
                        class="text-gray-400 hover:text-gray-600 transition-colors"
-                       title="{% trans 'Cerrar sesión' %}">
+                       title="Sign out">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                   d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
@@ -238,7 +325,7 @@
         
         <!-- Top Header (Mobile) -->
         <header class="md:hidden bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
-            <div class="flex items-center justify-between h-16 px-4">
+            <div class="flex items-center justify-between h-20 px-6">
                 <button @click="sidebarOpen = true" 
                         class="text-gray-600 hover:text-primary transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,10 +333,12 @@
                     </svg>
                 </button>
                 
-                <h1 class="text-lg font-semibold text-gray-900">MonAI</h1>
+                <img src="https://res.cloudinary.com/dpkvlxhyn/image/upload/v1757531595/logo-horizontal_az18yr.png" 
+                     alt="Wallai" 
+                     class="h-16 w-auto">
                 
-                <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                    <span class="text-sm font-medium text-white">
+                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                    <span class="text-base font-medium text-white">
                         {{ user.username.0|upper }}
                     </span>
                 </div>
@@ -257,7 +346,7 @@
         </header>
 
         <!-- Page Content -->
-        <main class="flex-1 overflow-y-auto bg-gray-50 pb-16 md:pb-0">
+        <main class="flex-1 overflow-y-auto bg-gray-50 pb-24 md:pb-0">
             <!-- Messages -->
             {% if messages %}
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
@@ -274,41 +363,77 @@
     </div>
 
     <!-- Bottom Navigation (Mobile Only) -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
-        <div class="flex justify-around">
-            <a href="{% url 'dashboard:home' %}" 
-               class="mobile-nav-item"
-               :class="{ 'active': currentPath === '{% url 'dashboard:home' %}' }">
-                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v0a2 2 0 01-2 2H10a2 2 0 01-2-2v0z"></path>
-                </svg>
-                <span>{% trans "Dashboard" %}</span>
-            </a>
-            
-            <div class="mobile-nav-item opacity-50">
-                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                </svg>
-                <span>{% trans "Espacios" %}</span>
-            </div>
-            
-            <div class="mobile-nav-item opacity-50">
-                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                </svg>
-                <span>{% trans "Presupuestos" %}</span>
-            </div>
-            
-            <div class="mobile-nav-item opacity-50">
-                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
-                <span>{% trans "Gastos" %}</span>
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50">
+        <div class="bottom-nav">
+            <!-- Navigation Grid -->
+            <div class="grid grid-cols-5 h-full relative">
+                <!-- Home -->
+                <a href="{% url 'dashboard:home' %}" 
+                   class="nav-button"
+                   :class="{ 'active': currentPath === '{% url 'dashboard:home' %}' }">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                    </svg>
+                    <span class="nav-text">Home</span>
+                </a>
+                
+                <!-- Stats -->
+                <a href="#" class="nav-button">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/>
+                    </svg>
+                    <span class="nav-text">Stats</span>
+                </a>
+                
+                <!-- Center Button (Add) -->
+                <div class="flex justify-center">
+                    <a href="#" class="center-button" @click="alert('Add feature coming soon!')">
+                        <svg class="center-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                        </svg>
+                    </a>
+                </div>
+                
+                <!-- Budget -->
+                <a href="#" class="nav-button">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"/>
+                    </svg>
+                    <span class="nav-text">Budget</span>
+                </a>
+                
+                <!-- Precios -->
+                <div class="nav-button" x-data="{ menuOpen: false }">
+                    <button @click="menuOpen = !menuOpen" class="flex flex-col items-center">
+                        <svg class="nav-icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M5.5 7A1.5 1.5 0 0 1 4 5.5A1.5 1.5 0 0 1 5.5 4A1.5 1.5 0 0 1 7 5.5A1.5 1.5 0 0 1 5.5 7m15.91 4.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.41l8.99 9c.37.36.87.59 1.42.59s1.05-.23 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.06-.59-1.42z"/>
+                        </svg>
+                        <span class="nav-text">Prices</span>
+                    </button>
+                    
+                    <!-- Mobile Menu -->
+                    <div x-show="menuOpen" 
+                         x-transition
+                         @click.away="menuOpen = false"
+                         class="absolute bottom-full right-4 mb-4 w-48 bg-white rounded-xl shadow-xl border py-2">
+                        <div class="px-4 py-3 text-sm text-gray-700 border-b border-gray-100">
+                            <div class="font-medium">{{ user.username }}</div>
+                            <div class="text-gray-500 text-xs mt-1">{{ user.email }}</div>
+                        </div>
+                        <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+                            <svg class="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+                            </svg>
+                            Settings
+                        </a>
+                        <a href="{% url 'authentication:logout' %}" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+                            <svg class="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
+                            </svg>
+                            Sign Out
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>

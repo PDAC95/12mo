@@ -1,13 +1,12 @@
 {% extends "public/base_public.html" %}
 {% load static %}
-{% load i18n %}
 
 {% block title %}Create Account - Wallai{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-green-400 via-teal-400 to-blue-500">
+<div class="min-h-screen bg-white">
     <div class="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+        <div class="max-w-md w-full">
             <!-- Header -->
             <div class="text-center mb-8">
                 <img src="https://res.cloudinary.com/dpkvlxhyn/image/upload/v1757531600/logo-vertical_nioobl.png" 
@@ -102,14 +101,14 @@
                     <div class="flex items-start">
                         <div class="flex items-center h-5">
                             <input id="terms" name="terms" type="checkbox" required 
-                                   class="form-checkbox focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded">
+                                   class="form-checkbox focus:ring-wallai-green h-4 w-4 text-wallai-green border-gray-300 rounded">
                         </div>
                         <div class="ml-3 text-sm">
                             <label for="terms" class="text-gray-700">
-                                {% trans "Acepto los" %}
-                                <a href="#" class="text-primary hover:text-primary-dark">{% trans "Términos y Condiciones" %}</a>
-                                {% trans "y la" %}
-                                <a href="#" class="text-primary hover:text-primary-dark">{% trans "Política de Privacidad" %}</a>
+                                I agree to the
+                                <a href="#" class="text-wallai-green hover:text-wallai-blue">Terms and Conditions</a>
+                                and
+                                <a href="#" class="text-wallai-green hover:text-wallai-blue">Privacy Policy</a>
                             </label>
                         </div>
                     </div>
@@ -125,29 +124,29 @@
 
                     <!-- Submit Button -->
                     <div>
-                        <button type="submit" class="w-full btn btn-primary py-3 text-base font-medium">
-                            {% trans "Crear Cuenta" %}
+                        <button type="submit" class="w-full wallai-btn py-3 text-base font-medium">
+                            Create Account
                         </button>
                     </div>
                 </form>
             </div>
-        </div>
 
-        <!-- Login Link -->
-        <div class="text-center">
-            <p class="text-gray-600">
-                {% trans "¿Ya tienes una cuenta?" %}
-                <a href="{% url 'authentication:login' %}" class="text-primary hover:text-primary-dark font-medium">
-                    {% trans "Inicia sesión aquí" %}
+            <!-- Login Link -->
+            <div class="text-center mt-6">
+                <p class="text-gray-600">
+                    Already have an account?
+                    <a href="{% url 'authentication:login' %}" class="text-wallai-green hover:text-wallai-blue font-medium">
+                        Sign in here
+                    </a>
+                </p>
+            </div>
+
+            <!-- Back to Home -->
+            <div class="text-center mt-4">
+                <a href="{% url 'public:home' %}" class="text-gray-500 hover:text-gray-700 text-sm">
+                    ← Back to home
                 </a>
-            </p>
-        </div>
-
-        <!-- Back to Home -->
-        <div class="text-center">
-            <a href="{% url 'public:home' %}" class="text-gray-500 hover:text-gray-700 text-sm">
-                ← {% trans "Volver al inicio" %}
-            </a>
+            </div>
         </div>
     </div>
 </div>
@@ -170,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add password matching validation
         password2.addEventListener('input', function() {
             if (password1.value !== password2.value) {
-                password2.setCustomValidity('{% trans "Las contraseñas no coinciden" %}');
+                password2.setCustomValidity('Passwords do not match');
             } else {
                 password2.setCustomValidity('');
             }
@@ -185,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', function(e) {
             if (!termsCheckbox.checked) {
                 e.preventDefault();
-                alert('{% trans "Debes aceptar los términos y condiciones" %}');
+                alert('You must accept the terms and conditions');
                 termsCheckbox.focus();
             }
         });
