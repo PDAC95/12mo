@@ -1,8 +1,8 @@
-# PLANNING.md - MonAI Technical Architecture
+# PLANNING.md - Wallai Technical Architecture
 
 ## Project Vision
 
-MonAI is a Progressive Web Application for collaborative personal finance management, enabling multiple users to share and manage budgets within defined spaces. Currently in Sprint 0, the project focuses on replacing manual Excel-based expense tracking with an automated, mobile-first solution that provides real-time visibility of shared finances.
+Wallai is a Progressive Web Application for collaborative personal finance management, enabling multiple users to share and manage budgets within defined spaces. Currently in Sprint 0, the project focuses on replacing manual Excel-based expense tracking with an automated, mobile-first solution that provides real-time visibility of shared finances.
 
 **MVP Scope:** User authentication, space management, budget planning, expense tracking, and basic dashboard with PWA capabilities
 **Current Status:** Sprint 0 - Foundation setup (Authentication + Base Apps completed)
@@ -671,9 +671,194 @@ Coverage: pytest-cov
 
 ---
 
+## Wallai Design System Architecture
+
+### Brand Identity & Color System
+
+**Primary Brand Colors:**
+```css
+:root {
+  --wallai-green: #4ADE80;    /* Primary CTA buttons, highlights */
+  --wallai-teal: #5EEAD4;     /* Secondary accents, hover states */
+  --wallai-blue: #3B82A6;     /* Links, active states */
+  --wallai-dark: #1E293B;     /* Text, borders */
+  
+  /* Gradient System */
+  --gradient-primary: linear-gradient(135deg, #4ADE80 0%, #5EEAD4 50%, #3B82A6 100%);
+  --gradient-secondary: linear-gradient(135deg, #5EEAD4 0%, #3B82A6 100%);
+  --gradient-accent: linear-gradient(135deg, #4ADE80 0%, #5EEAD4 100%);
+}
+```
+
+**Logo Assets (Cloudinary CDN):**
+- Horizontal: `logo-horizontal_az18yr.png` (Navigation, h-12/h-16)
+- Vertical: `logo-vertical_nioobl.png` (Hero sections, h-32)  
+- Compact: `logo_zp2pxq.png` (Mobile, favicons, h-8)
+
+### Component Architecture
+
+**CSS Structure:**
+```
+static/css/
+├── wallai.css                 # Brand-specific utilities and components
+└── wallai-design-system.css   # Comprehensive component system
+```
+
+**Core Component Classes:**
+```css
+/* Buttons */
+.wallai-btn {
+  @apply px-6 py-3 rounded-xl font-semibold text-white shadow-lg;
+  background: var(--gradient-primary);
+  transition: all 0.2s ease;
+}
+
+.wallai-btn-outline {
+  @apply px-6 py-3 rounded-xl font-semibold border-2;
+  border-color: var(--wallai-green);
+  color: var(--wallai-green);
+}
+
+/* Cards & Containers */
+.wallai-card {
+  @apply bg-white rounded-2xl p-6 shadow-lg border border-gray-100;
+}
+
+/* Form Elements */
+.wallai-input {
+  @apply w-full px-4 py-3 rounded-xl border-2 border-gray-200;
+  @apply focus:border-wallai-green focus:outline-none;
+  transition: border-color 0.2s ease;
+}
+
+/* Brand Text Effects */
+.wallai-gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+```
+
+### Navigation System Architecture
+
+**Mobile-First Navigation (Updated Implementation):**
+
+```html
+<!-- Enhanced Header (80px height, h-16 logo) -->
+<header class="h-20 bg-white border-b border-gray-200">
+  <div class="flex items-center justify-between h-full px-6">
+    <img src="logo-horizontal.png" alt="Wallai" class="h-16">
+    <div class="user-menu">{{ user.first_name }}</div>
+  </div>
+</header>
+
+<!-- Modern Curved Bottom Navigation (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 z-50">
+  <div class="bottom-nav h-18 bg-white border-t border-gray-200">
+    <div class="grid grid-cols-5 h-full relative">
+      <!-- Home, Stats, Center (+), Budget, Prices -->
+      <div class="center-button absolute top-[-30px] left-1/2 transform -translate-x-1/2">
+        <button class="w-17 h-17 bg-wallai-gradient rounded-full">
+          <svg class="w-8 h-8 text-white"><!-- Plus icon --></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+```
+
+**Navigation Features:**
+- **Mobile**: Curved bottom nav with floating center button
+- **Desktop**: Enhanced sidebar with larger logo
+- **Responsive**: Seamless experience across all screen sizes
+- **Touch Optimized**: 44px+ touch targets, proper spacing
+
+### Template Architecture
+
+**Template Hierarchy:**
+```
+templates/
+├── public/                    # No authentication required
+│   ├── base_public.html      # PWA config, landing pages
+│   ├── landing.html          # Hero + features with Wallai branding
+│   ├── login.html            # Wallai-styled authentication
+│   └── register.html         # Consistent branding
+├── authenticated/            # Authentication required  
+│   └── base_authenticated.html # Modern navigation + Wallai design
+├── dashboard/
+│   └── home.html            # Dashboard with metrics cards
+└── components/              # Reusable components
+    ├── mobile_navigation.html # Bottom nav component
+    └── modals.html          # Glassmorphism modals
+```
+
+### Responsive Design Standards
+
+**Breakpoint System:**
+- **Mobile**: 375px-767px (Bottom navigation primary)
+- **Tablet**: 768px-1023px (Both nav systems)
+- **Desktop**: 1024px+ (Sidebar primary)
+
+**Typography Scale:**
+```css
+/* Mobile-first with responsive scaling */
+.hero-title { @apply text-3xl md:text-4xl lg:text-5xl; }
+.section-title { @apply text-2xl md:text-3xl; }
+.body-text { @apply text-base md:text-lg; }
+```
+
+**Spacing System (Tailwind-based):**
+- Base unit: 4px
+- Common spacings: 12px (p-3), 24px (p-6), 32px (p-8), 48px (p-12)
+- Touch targets: Minimum 44px for mobile interactions
+
+### Animation & Interaction Patterns
+
+**Micro-Animations:**
+```css
+/* Floating elements */
+@keyframes wallai-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Hover effects */
+.hover\:scale-105:hover { transform: scale(1.05); }
+.transition-all { transition: all 0.2s ease; }
+```
+
+**Glassmorphism Effects:**
+```css
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+```
+
+### Performance & Optimization
+
+**CSS Optimization:**
+- Critical CSS inlined for above-the-fold content
+- Non-critical CSS loaded asynchronously
+- Tailwind purging for production builds
+
+**Asset Optimization:**
+- Logo assets served via Cloudinary CDN
+- Automatic WebP conversion and responsive images
+- Lazy loading for below-fold images
+
+**Bundle Strategy:**
+- Component-based CSS architecture
+- Modular JavaScript with ES6 modules
+- Service worker caching for offline experience
+
+---
+
 **Document Status:**
 
 - Created: September 8, 2025
-- Last Updated: September 8, 2025
-- Version: 1.0
+- Last Updated: September 11, 2025 (Wallai rebrand + modern navigation)
+- Version: 2.0
 - Maintained by: PDAC95 Engineering Team

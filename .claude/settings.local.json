@@ -14,7 +14,9 @@
       "Bash(timeout:*)",
       "Bash(mkdir:*)",
       "Bash(python:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(dir C:dev12modocs)",
+      "Bash(dir \"C:\\dev\\12mo\\static\\pwa\")"
     ],
     "deny": [],
     "ask": []

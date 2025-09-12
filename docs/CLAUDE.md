@@ -1,4 +1,4 @@
-# CLAUDE.md - MonAI Framework Rules
+# CLAUDE.md - Wallai Framework Rules
 
 ## MANDATORY RULES FOR CLAUDE CODE
 
@@ -618,4 +618,4 @@ python manage.py check
 
 ---
 
-_This document is the source of truth for MonAI development. Follow it strictly._
+_This document is the source of truth for Wallai development. Follow it strictly._
