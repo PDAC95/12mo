@@ -12,8 +12,8 @@
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
     
-    <!-- PWA Configuration -->
-    <link rel="manifest" href="{% static 'pwa/manifest.json' %}">
+    <!-- PWA Configuration - Comentado temporalmente hasta crear iconos -->
+    <!-- <link rel="manifest" href="{% static 'pwa/manifest.json' %}"> -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Wallai">
@@ -165,188 +165,292 @@
                 height: calc(72px + env(safe-area-inset-bottom));
             }
         }
+
+        /* Smooth scrolling and mobile scroll improvements */
+        main {
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+        }
+
+        main::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        main::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        main::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.5);
+            border-radius: 3px;
+        }
+
+        main::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(156, 163, 175, 0.7);
+        }
     </style>
     
     {% block extra_head %}{% endblock %}
 </head>
 
-<body class="h-full overflow-hidden" x-data="{ sidebarOpen: false, currentPath: window.location.pathname }">
+<body class="h-screen overflow-hidden" x-data="{ spaceMenuOpen: false, userMenuOpen: false, currentPath: window.location.pathname, currentSpace: 'Personal' }">
     
-    <!-- Mobile sidebar backdrop -->
-    <div x-show="sidebarOpen" 
+    <!-- Space Selector Backdrop -->
+    <div x-show="spaceMenuOpen" 
          x-transition:enter="transition-opacity ease-linear duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
          x-transition:leave="transition-opacity ease-linear duration-300"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"
-         @click="sidebarOpen = false"></div>
+         class="fixed inset-0 z-30 bg-black bg-opacity-50"
+         @click="spaceMenuOpen = false"></div>
 
-    <!-- Sidebar -->
-    <div class="fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg sidebar-transition md:translate-x-0"
-         :class="{ 'sidebar-hidden': !sidebarOpen }"
-         x-show="sidebarOpen || window.innerWidth >= 768">
+    <!-- Space Selector Menu -->
+    <div x-show="spaceMenuOpen"
+         x-transition:enter="transition-transform ease-out duration-300"
+         x-transition:enter-start="-translate-x-full"
+         x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition-transform ease-in duration-200"
+         x-transition:leave-start="translate-x-0"
+         x-transition:leave-end="-translate-x-full"
+         class="fixed inset-y-0 left-0 z-40 w-80 bg-white shadow-xl">
         
-        <!-- Sidebar Header -->
-        <div class="flex items-center justify-between h-16 px-4 bg-wallai-gradient">
-            <div class="flex items-center">
-                <img src="https://res.cloudinary.com/dpkvlxhyn/image/upload/v1757531595/logo-horizontal_az18yr.png" 
-                     alt="Wallai" 
-                     class="h-8 w-auto">
-            </div>
-            <button @click="sidebarOpen = false" 
-                    class="text-white md:hidden hover:text-gray-300 transition-colors">
+        <!-- Space Selector Header -->
+        <div class="flex items-center justify-between h-16 px-6 bg-gradient-to-r from-wallai-green to-wallai-teal">
+            <h2 class="text-lg font-semibold text-white">Your Spaces</h2>
+            <button @click="spaceMenuOpen = false" 
+                    class="text-white hover:text-gray-200 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
             </button>
         </div>
 
-        <!-- Navigation Menu -->
-        <nav class="mt-8">
-            <div class="px-4">
-                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    Main
-                </p>
-            </div>
-            
-            <ul class="mt-4 space-y-1">
-                <li>
-                    <a href="{% url 'dashboard:home' %}" 
-                       class="nav-item"
-                       :class="{ 'active': currentPath === '{% url 'dashboard:home' %}' }">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v0a2 2 0 01-2 2H10a2 2 0 01-2-2v0z"></path>
+        <!-- Spaces List -->
+        <div class="flex-1 overflow-y-auto p-4">
+            <!-- Current Space -->
+            <div class="mb-6">
+                <div @click="currentSpace = 'Personal'; spaceMenuOpen = false" 
+                     class="flex items-center justify-between p-4 bg-wallai-green bg-opacity-10 border-2 border-wallai-green rounded-xl cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-wallai-green rounded-full flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Personal Space</h3>
+                            <p class="text-sm text-gray-600">Solo account</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-wallai-green" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                         </svg>
-                        Dashboard
-                    </a>
-                </li>
-                
-                <li>
-                    <a href="#" 
-                       class="nav-item opacity-50 cursor-not-allowed">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                        </svg>
-                        Spaces
-                        <span class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                            Soon
-                        </span>
-                    </a>
-                </li>
-                
-                <li>
-                    <a href="#" 
-                       class="nav-item opacity-50 cursor-not-allowed">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                        </svg>
-                        Budgets
-                        <span class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                            Soon
-                        </span>
-                    </a>
-                </li>
-                
-                <li>
-                    <a href="#" 
-                       class="nav-item opacity-50 cursor-not-allowed">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
-                        Expenses
-                        <span class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                            Soon
-                        </span>
-                    </a>
-                </li>
-            </ul>
-
-            <div class="px-4 mt-8">
-                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    Account
-                </p>
-            </div>
-            
-            <ul class="mt-4 space-y-1">
-                <li>
-                    <a href="#" 
-                       class="nav-item opacity-50 cursor-not-allowed">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                        Settings
-                        <span class="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                            Soon
-                        </span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-
-        <!-- User Profile Section -->
-        <div class="absolute bottom-0 w-full p-4 border-t border-gray-200">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                        <span class="text-sm font-medium text-white">
-                            {{ user.username.0|upper }}
-                        </span>
                     </div>
                 </div>
-                <div class="ml-3 flex-1">
-                    <p class="text-sm font-medium text-gray-900">{{ user.username }}</p>
-                    <p class="text-xs text-gray-500">{{ user.email }}</p>
+            </div>
+
+            <!-- Available Spaces -->
+            <div class="space-y-3 mb-6">
+                <div @click="currentSpace = 'Family'; spaceMenuOpen = false" 
+                     class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl cursor-pointer hover:border-wallai-green hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2c0 1.11-.89 2-2 2s-2-.89-2-2zM4 18v-4h3v4h2v-4h3v4h2v-4h3v4h2V6H4v12z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Family Budget</h3>
+                            <p class="text-sm text-gray-600">3 members</p>
+                        </div>
+                    </div>
+                    <span class="text-sm font-medium text-green-600">$2,450</span>
                 </div>
-                <div class="ml-3">
-                    <a href="{% url 'authentication:logout' %}" 
-                       class="text-gray-400 hover:text-gray-600 transition-colors"
-                       title="Sign out">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                        </svg>
-                    </a>
+
+                <div @click="currentSpace = 'Roommates'; spaceMenuOpen = false"
+                     class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl cursor-pointer hover:border-wallai-green hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Roommate Expenses</h3>
+                            <p class="text-sm text-gray-600">4 members</p>
+                        </div>
+                    </div>
+                    <span class="text-sm font-medium text-red-600">-$180</span>
                 </div>
+
+                <div @click="currentSpace = 'Business'; spaceMenuOpen = false"
+                     class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl cursor-pointer hover:border-wallai-green hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20 16v-2.5l-2-2-2 2V16c0 .55.45 1 1 1h2c.55 0 1-.45 1-1zm-5.5-5L17 8.5 15.5 7H8.5L7 8.5 9.5 11H19v1.5l2-2V9c0-1.1-.9-2-2-2h-4.5z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Business Travel</h3>
+                            <p class="text-sm text-gray-600">2 members</p>
+                        </div>
+                    </div>
+                    <span class="text-sm font-medium text-green-600">$1,200</span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="border-t pt-4 space-y-3">
+                <button class="w-full flex items-center justify-center p-4 bg-wallai-green text-white rounded-xl hover:bg-opacity-90 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Create New Space
+                </button>
+
+                <button class="w-full flex items-center justify-center p-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                    </svg>
+                    Join Space (Code)
+                </button>
+            </div>
+
+            <!-- Analytics Link -->
+            <div class="mt-6 pt-4 border-t">
+                <button class="w-full flex items-center justify-center p-3 text-wallai-green hover:bg-wallai-green hover:bg-opacity-10 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    All Spaces Analytics
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Main Content Area -->
-    <div class="md:ml-64 flex flex-col min-h-screen">
+    <div class="flex flex-col min-h-screen">
         
-        <!-- Top Header (Mobile) -->
-        <header class="md:hidden bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
-            <div class="flex items-center justify-between h-20 px-6">
-                <button @click="sidebarOpen = true" 
-                        class="text-gray-600 hover:text-primary transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                    </svg>
-                </button>
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
+            <div class="relative flex items-center h-20 px-6">
+                <!-- Left: Space Selector -->
+                <div class="flex items-center">
+                    <button @click="spaceMenuOpen = true" 
+                            class="text-gray-600 hover:text-wallai-green transition-colors mr-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <span class="text-sm font-medium text-gray-700" x-text="currentSpace"></span>
+                </div>
                 
-                <img src="https://res.cloudinary.com/dpkvlxhyn/image/upload/v1757531595/logo-horizontal_az18yr.png" 
-                     alt="Wallai" 
-                     class="h-16 w-auto">
+                <!-- Center: Logo (Absolutely positioned) -->
+                <div class="absolute left-1/2 transform -translate-x-1/2">
+                    <img src="https://res.cloudinary.com/dpkvlxhyn/image/upload/v1757531595/logo-horizontal_az18yr.png" 
+                         alt="Wallai" 
+                         class="h-16 w-auto">
+                </div>
                 
-                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                    <span class="text-base font-medium text-white">
-                        {{ user.username.0|upper }}
-                    </span>
+                <!-- Right: User Menu -->
+                <div class="relative ml-auto" x-data="{ open: false }">
+                    <button @click="userMenuOpen = !userMenuOpen" 
+                            class="flex items-center text-gray-600 hover:text-wallai-green transition-colors">
+                        <div class="w-10 h-10 bg-wallai-green rounded-full flex items-center justify-center">
+                            <span class="text-base font-medium text-white">
+                                {{ user.username.0|upper }}
+                            </span>
+                        </div>
+                    </button>
+
+                    <!-- User Menu Dropdown -->
+                    <div x-show="userMenuOpen"
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="transform opacity-0 scale-95"
+                         x-transition:enter-end="transform opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="transform opacity-100 scale-100"
+                         x-transition:leave-end="transform opacity-0 scale-95"
+                         @click.away="userMenuOpen = false"
+                         class="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border py-2 z-30">
+                        
+                        <!-- User Info -->
+                        <div class="px-4 py-3 border-b border-gray-100">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 bg-wallai-green rounded-full flex items-center justify-center mr-3">
+                                    <span class="text-lg font-medium text-white">
+                                        {{ user.username.0|upper }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-900">{{ user.username }}</div>
+                                    <div class="text-sm text-gray-600">{{ user.email }}</div>
+                                    <div class="text-xs text-gray-500 mt-1">Member since March 2025</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Menu Items -->
+                        <div class="py-2">
+                            <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                Account Settings
+                            </a>
+                            
+                            <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.5 17.5h5v5l-5-5zM12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12c0-7-4-7-7-7s-7 0-7 7c0 2.8 2.2 5 7 5s7-2.2 7-5z"/>
+                                </svg>
+                                Notifications
+                            </a>
+
+                            <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                                My Activity
+                            </a>
+
+                            <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Help & Support
+                            </a>
+
+                            <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+                                </svg>
+                                Language: English
+                            </a>
+                        </div>
+
+                        <!-- Sign Out -->
+                        <div class="border-t pt-2">
+                            <a href="{% url 'authentication:logout' %}" class="flex items-center px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                                Sign Out
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
 
         <!-- Page Content -->
-        <main class="flex-1 overflow-y-auto bg-gray-50 pb-24 md:pb-0">
+        <main class="flex-1 overflow-y-auto bg-gray-50 pb-24 md:pb-0" style="height: calc(100vh - 80px); max-height: calc(100vh - 80px);">
             <!-- Messages -->
             {% if messages %}
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
@@ -402,45 +506,21 @@
                     <span class="nav-text">Budget</span>
                 </a>
                 
-                <!-- Precios -->
-                <div class="nav-button" x-data="{ menuOpen: false }">
-                    <button @click="menuOpen = !menuOpen" class="flex flex-col items-center">
-                        <svg class="nav-icon" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M5.5 7A1.5 1.5 0 0 1 4 5.5A1.5 1.5 0 0 1 5.5 4A1.5 1.5 0 0 1 7 5.5A1.5 1.5 0 0 1 5.5 7m15.91 4.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.41l8.99 9c.37.36.87.59 1.42.59s1.05-.23 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.06-.59-1.42z"/>
-                        </svg>
-                        <span class="nav-text">Prices</span>
-                    </button>
-                    
-                    <!-- Mobile Menu -->
-                    <div x-show="menuOpen" 
-                         x-transition
-                         @click.away="menuOpen = false"
-                         class="absolute bottom-full right-4 mb-4 w-48 bg-white rounded-xl shadow-xl border py-2">
-                        <div class="px-4 py-3 text-sm text-gray-700 border-b border-gray-100">
-                            <div class="font-medium">{{ user.username }}</div>
-                            <div class="text-gray-500 text-xs mt-1">{{ user.email }}</div>
-                        </div>
-                        <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
-                            <svg class="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
-                            </svg>
-                            Settings
-                        </a>
-                        <a href="{% url 'authentication:logout' %}" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
-                            <svg class="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
-                            </svg>
-                            Sign Out
-                        </a>
-                    </div>
-                </div>
+                <!-- Prices -->
+                <a href="#" class="nav-button">
+                    <svg class="nav-icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M5.5 7A1.5 1.5 0 0 1 4 5.5A1.5 1.5 0 0 1 5.5 4A1.5 1.5 0 0 1 7 5.5A1.5 1.5 0 0 1 5.5 7m15.91 4.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.41l8.99 9c.37.36.87.59 1.42.59s1.05-.23 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.06-.59-1.42z"/>
+                    </svg>
+                    <span class="nav-text">Prices</span>
+                </a>
             </div>
         </div>
     </nav>
 
-    <!-- PWA Service Worker -->
+    <!-- PWA Service Worker - Comentado temporalmente hasta crear sw.js -->
     {% block extra_js %}{% endblock %}
     
+    <!-- 
     <script>
         // Register service worker for PWA functionality
         if ('serviceWorker' in navigator) {
@@ -453,14 +533,10 @@
                     });
             });
         }
+    -->
         
-        // Close sidebar when clicking on main content (mobile)
-        document.addEventListener('click', function(e) {
-            const sidebar = document.querySelector('[x-data]');
-            if (window.innerWidth < 768 && !e.target.closest('.fixed.inset-y-0') && !e.target.closest('[\\@click="sidebarOpen = true"]')) {
-                Alpine.store('sidebarOpen', false);
-            }
-        });
+        // Close dropdowns when clicking outside (handled by Alpine.js @click.away)
+        // No additional JavaScript needed for the new menu system
     </script>
 </body>
 </html>
