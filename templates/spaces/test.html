@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spaces Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        .btn {
+            background: #4ADE80;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Spaces System Test</h1>
+
+    <div class="test-card">
+        <h2>✅ Basic HTML/CSS Working</h2>
+        <p>If you can see this styled page, the basic rendering is working.</p>
+    </div>
+
+    <div class="test-card">
+        <h2>Navigation Test</h2>
+        <a href="{% url 'spaces:list' %}" class="btn">Go to Spaces List</a>
+        <a href="{% url 'spaces:create' %}" class="btn">Create New Space</a>
+        <a href="{% url 'spaces:join' %}" class="btn">Join Space</a>
+        <a href="{% url 'dashboard:home' %}" class="btn">Back to Dashboard</a>
+    </div>
+
+    <div class="test-card">
+        <h2>User Info</h2>
+        <p><strong>Current User:</strong> {{ user.username }}</p>
+        <p><strong>Is Authenticated:</strong> {{ user.is_authenticated }}</p>
+        <p><strong>Total Spaces:</strong> {{ total_spaces|default:"0" }}</p>
+    </div>
+
+    <div class="test-card">
+        <h2>Spaces Data</h2>
+        {% if spaces_data %}
+            <ul>
+            {% for item in spaces_data %}
+                <li>
+                    <strong>{{ item.space.name }}</strong>
+                    ({{ item.role }}, {{ item.member_count }} members)
+                    - Code: {{ item.space.invite_code }}
+                </li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p>No spaces found for this user.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

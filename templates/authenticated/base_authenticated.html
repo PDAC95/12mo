@@ -481,12 +481,14 @@
                     <span class="nav-text">Home</span>
                 </a>
                 
-                <!-- Stats -->
-                <a href="#" class="nav-button">
+                <!-- Spaces -->
+                <a href="{% url 'spaces:list' %}"
+                   class="nav-button"
+                   :class="{ 'active': currentPath.includes('/spaces/') }">
                     <svg class="nav-icon" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                     </svg>
-                    <span class="nav-text">Stats</span>
+                    <span class="nav-text">Spaces</span>
                 </a>
                 
                 <!-- Center Button (Add) -->

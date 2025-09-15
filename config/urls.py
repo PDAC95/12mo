@@ -16,7 +16,8 @@ urlpatterns = [
     
     # Protected pages
     path('dashboard/', include('dashboard.urls')),
-    
+    path('spaces/', include('spaces.urls')),
+
     # API endpoints (if needed later)
     # path('api/auth/', include('authentication.api_urls')),
 ]

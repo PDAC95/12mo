@@ -1,0 +1,181 @@
+{% extends 'authenticated/base_authenticated.html' %}
+
+{% block page_title %}Create New Space{% endblock %}
+
+{% block main_content %}
+<!-- Header Section -->
+<div class="mb-8">
+    <div class="flex items-center space-x-4">
+        <a href="{% url 'spaces:list' %}"
+           class="flex items-center text-gray-600 hover:text-gray-900">
+            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back to Spaces
+        </a>
+    </div>
+    <div class="mt-4">
+        <h1 class="text-3xl font-bold text-gray-900">Create New Space</h1>
+        <p class="mt-2 text-gray-600">Start a new shared financial space for your family, roommates, or group</p>
+    </div>
+</div>
+
+<!-- Form Container -->
+<div class="max-w-2xl mx-auto">
+    <div class="wallai-card">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Space Name -->
+            <div>
+                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Space Name *
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <div class="mt-1 text-sm text-red-600">
+                        {% for error in form.name.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if form.name.help_text %}
+                    <p class="mt-1 text-sm text-gray-500">{{ form.name.help_text }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Space Description -->
+            <div>
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Description (Optional)
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="mt-1 text-sm text-red-600">
+                        {% for error in form.description.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if form.description.help_text %}
+                    <p class="mt-1 text-sm text-gray-500">{{ form.description.help_text }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Information Box -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-blue-800">What happens when you create a space?</h3>
+                        <div class="mt-2 text-sm text-blue-700">
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>You'll become the space owner with full management rights</li>
+                                <li>A unique 6-character invite code will be generated</li>
+                                <li>You can invite up to 10 members to join</li>
+                                <li>Members can track shared expenses and budgets together</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+                <button type="submit" class="wallai-btn w-full sm:w-auto">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Create Space
+                </button>
+                <a href="{% url 'spaces:list' %}"
+                   class="wallai-btn-outline text-center w-full sm:w-auto">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Space Examples -->
+    <div class="mt-8 bg-gray-50 rounded-lg p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Space Ideas</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-3">
+                <h4 class="font-medium text-gray-800">Family & Personal</h4>
+                <div class="space-y-2 text-sm text-gray-600">
+                    <div class="flex items-center">
+                        <span class="w-2 h-2 bg-wallai-green rounded-full mr-2"></span>
+                        Family Budget
+                    </div>
+                    <div class="flex items-center">
+                        <span class="w-2 h-2 bg-wallai-green rounded-full mr-2"></span>
+                        Couple Expenses
+                    </div>
+                    <div class="flex items-center">
+                        <span class="w-2 h-2 bg-wallai-green rounded-full mr-2"></span>
+                        Vacation Fund
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <h4 class="font-medium text-gray-800">Groups & Shared</h4>
+                <div class="space-y-2 text-sm text-gray-600">
+                    <div class="flex items-center">
+                        <span class="w-2 h-2 bg-wallai-blue rounded-full mr-2"></span>
+                        Roommate Expenses
+                    </div>
+                    <div class="flex items-center">
+                        <span class="w-2 h-2 bg-wallai-blue rounded-full mr-2"></span>
+                        Project Budget
+                    </div>
+                    <div class="flex items-center">
+                        <span class="w-2 h-2 bg-wallai-blue rounded-full mr-2"></span>
+                        Event Planning
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-format space name on input
+document.getElementById('{{ form.name.id_for_label }}').addEventListener('input', function(e) {
+    // Remove extra spaces and trim
+    let value = e.target.value.replace(/\s+/g, ' ').trim();
+    e.target.value = value;
+});
+
+// Character counter for description
+const descriptionField = document.getElementById('{{ form.description.id_for_label }}');
+if (descriptionField) {
+    const maxLength = 500;
+
+    // Create counter element
+    const counter = document.createElement('div');
+    counter.className = 'text-sm text-gray-500 mt-1 text-right';
+    counter.id = 'description-counter';
+    descriptionField.parentNode.appendChild(counter);
+
+    function updateCounter() {
+        const remaining = maxLength - descriptionField.value.length;
+        counter.textContent = `${remaining} characters remaining`;
+
+        if (remaining < 50) {
+            counter.className = 'text-sm text-orange-600 mt-1 text-right';
+        } else {
+            counter.className = 'text-sm text-gray-500 mt-1 text-right';
+        }
+    }
+
+    descriptionField.addEventListener('input', updateCounter);
+    updateCounter(); // Initialize
+}
+</script>
+{% endblock %}

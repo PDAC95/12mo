@@ -82,32 +82,64 @@
 
 /* Custom Components */
 .wallai-btn {
-  @apply px-6 py-3 rounded-xl font-semibold text-white shadow-lg transition-all duration-200;
+  padding: 1.5rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  color: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
   background: var(--gradient-primary);
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
 }
 
 .wallai-btn:hover {
   transform: translateY(-1px);
   box-shadow: var(--wallai-shadow-lg);
+  color: white;
+  text-decoration: none;
 }
 
 .wallai-btn-outline {
-  @apply px-6 py-3 rounded-xl font-semibold border-2 transition-all duration-200;
+  padding: 1.5rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: 2px solid;
+  transition: all 0.2s;
   border-color: var(--wallai-green);
   color: var(--wallai-green);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
 }
 
 .wallai-btn-outline:hover {
   background-color: var(--wallai-green);
-  @apply text-white;
+  color: white;
+  text-decoration: none;
 }
 
 .wallai-card {
-  @apply bg-white rounded-2xl p-6 shadow-lg border border-gray-100;
+  background-color: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f3f4f6;
 }
 
 .wallai-input {
-  @apply w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-wallai-green focus:outline-none transition-colors duration-200;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 2px solid #d1d5db;
+  transition: border-color 0.2s;
+}
+
+.wallai-input:focus {
+  outline: none;
+  border-color: var(--wallai-green);
 }
 
 .wallai-input:focus {
@@ -140,22 +172,27 @@
 /* Responsive Design */
 @media (max-width: 640px) {
   .wallai-btn {
-    @apply px-4 py-2 text-sm;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
   }
-  
+
   .wallai-btn-outline {
-    @apply px-4 py-2 text-sm;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
   }
 }
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .wallai-card {
-    @apply bg-gray-800 border-gray-700;
+    background-color: #1f2937;
+    border-color: #374151;
   }
-  
+
   .wallai-input {
-    @apply bg-gray-800 text-white border-gray-600;
+    background-color: #1f2937;
+    color: white;
+    border-color: #4b5563;
   }
 }
 

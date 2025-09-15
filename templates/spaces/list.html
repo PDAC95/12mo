@@ -1,0 +1,165 @@
+{% extends 'authenticated/base_authenticated.html' %}
+
+{% block page_title %}My Spaces{% endblock %}
+
+{% block main_content %}
+<!-- Header Section -->
+<div class="mb-8">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">My Spaces</h1>
+            <p class="mt-2 text-gray-600">Manage your shared financial spaces</p>
+        </div>
+        <div class="flex space-x-3">
+            <a href="{% url 'spaces:join' %}"
+               class="wallai-btn-outline">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Join Space
+            </a>
+            <a href="{% url 'spaces:create' %}"
+               class="wallai-btn">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Create Space
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Spaces Grid -->
+{% if spaces_data %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for item in spaces_data %}
+            <div class="wallai-card hover:shadow-xl transition-shadow duration-200">
+                <!-- Space Header -->
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-1">
+                            {{ item.space.name }}
+                        </h3>
+                        {% if item.space.description %}
+                            <p class="text-gray-600 text-sm">{{ item.space.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="flex-shrink-0">
+                        {% if item.is_owner %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Owner
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Member
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Space Stats -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-gray-900">{{ item.member_count }}</div>
+                        <div class="text-sm text-gray-500">
+                            {% if item.member_count == 1 %}Member{% else %}Members{% endif %}
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-sm font-mono bg-gray-100 px-2 py-1 rounded text-gray-700">
+                            {{ item.space.invite_code }}
+                        </div>
+                        <div class="text-sm text-gray-500">Invite Code</div>
+                    </div>
+                </div>
+
+                <!-- Space Actions -->
+                <div class="flex space-x-2">
+                    <a href="{% url 'spaces:detail' item.space.pk %}"
+                       class="flex-1 bg-wallai-blue text-white text-center py-2 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors">
+                        View Details
+                    </a>
+                    {% if item.is_owner %}
+                        <a href="{% url 'spaces:update' item.space.pk %}"
+                           class="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors">
+                            Edit
+                        </a>
+                    {% endif %}
+                </div>
+
+                <!-- Created Date -->
+                <div class="mt-3 pt-3 border-t border-gray-200">
+                    <p class="text-xs text-gray-500">
+                        Created {{ item.space.created_at|date:"M j, Y" }}
+                    </p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+{% else %}
+    <!-- Empty State -->
+    <div class="text-center py-12">
+        <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                </path>
+            </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No spaces yet</h3>
+        <p class="text-gray-600 mb-6">Create your first space or join an existing one to get started.</p>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+            <a href="{% url 'spaces:create' %}"
+               class="wallai-btn">
+                Create Your First Space
+            </a>
+            <a href="{% url 'spaces:join' %}"
+               class="wallai-btn-outline">
+                Join Existing Space
+            </a>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Quick Stats -->
+{% if spaces_data %}
+<div class="mt-12 bg-gray-50 rounded-lg p-6">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Overview</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="text-center">
+            <div class="text-2xl font-bold text-wallai-green">{{ total_spaces }}</div>
+            <div class="text-sm text-gray-600">
+                Total {% if total_spaces == 1 %}Space{% else %}Spaces{% endif %}
+            </div>
+        </div>
+        <div class="text-center">
+            <div class="text-2xl font-bold text-wallai-blue">
+                {% for item in spaces_data %}
+                    {% if item.is_owner %}{{ forloop.counter }}{% endif %}
+                {% empty %}0{% endfor %}
+            </div>
+            <div class="text-sm text-gray-600">Owned</div>
+        </div>
+        <div class="text-center">
+            <div class="text-2xl font-bold text-wallai-teal">
+                {% for item in spaces_data %}
+                    {% if not item.is_owner %}{{ forloop.counter }}{% endif %}
+                {% empty %}0{% endfor %}
+            </div>
+            <div class="text-sm text-gray-600">Joined</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh every 30 seconds to show new members
+setInterval(() => {
+    // Could implement live updates here later
+}, 30000);
+</script>
+{% endblock %}
