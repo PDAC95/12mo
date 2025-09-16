@@ -1,0 +1,244 @@
+{% extends 'authenticated/base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Create Monthly Budget - {{ current_space.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-20">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Create Monthly Budget</h1>
+                    <p class="mt-1 text-sm text-gray-600">{{ current_space.name }}</p>
+                </div>
+                <a href="{% url 'budgets:home' %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back to Budgets
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Info Card -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">Creating a Monthly Budget</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <p>This will create a complete budget for the specified month using our default categories. You can:</p>
+                        <ul class="list-disc ml-5 mt-1 space-y-1">
+                            <li>Start with system default amounts, or</li>
+                            <li>Copy amounts from your previous month's budget</li>
+                        </ul>
+                        <p class="mt-2">After creation, you can edit individual categories and amounts as needed.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Form -->
+        <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Budget Configuration</h2>
+            </div>
+            <form method="post" class="p-6 space-y-6">
+                {% csrf_token %}
+
+                <!-- Month Period -->
+                <div>
+                    <label for="{{ form.month_period.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Budget Month
+                    </label>
+                    <div class="mt-1">
+                        {{ form.month_period }}
+                        {% if form.month_period.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.month_period.help_text }}</p>
+                        {% endif %}
+                        {% if form.month_period.errors %}
+                            <div class="mt-1">
+                                {% for error in form.month_period.errors %}
+                                    <p class="text-sm text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Copy Option -->
+                <div class="relative flex items-start">
+                    <div class="flex items-center h-5">
+                        {{ form.copy_from_previous }}
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="{{ form.copy_from_previous.id_for_label }}" class="font-medium text-gray-700">
+                            Copy from previous month
+                        </label>
+                        {% if form.copy_from_previous.help_text %}
+                            <p class="text-gray-500">{{ form.copy_from_previous.help_text }}</p>
+                        {% endif %}
+                        {% if form.copy_from_previous.errors %}
+                            <div class="mt-1">
+                                {% for error in form.copy_from_previous.errors %}
+                                    <p class="text-sm text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Form Errors -->
+                {% if form.non_field_errors %}
+                    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
+                                <div class="mt-2 text-sm text-red-700">
+                                    <ul class="list-disc list-inside space-y-1">
+                                        {% for error in form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Preview Categories -->
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-sm font-medium text-gray-900 mb-4">Default Categories That Will Be Created</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-3">
+                            <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider">Fixed Expenses</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                                    <div class="flex items-center">
+                                        <div class="w-6 h-6 bg-blue-100 rounded-md flex items-center justify-center mr-3">
+                                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                                            </svg>
+                                        </div>
+                                        <span class="text-sm text-gray-900">Housing & Rent</span>
+                                    </div>
+                                    <span class="text-sm text-gray-500">$1,200</span>
+                                </div>
+                                <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                                    <div class="flex items-center">
+                                        <div class="w-6 h-6 bg-green-100 rounded-md flex items-center justify-center mr-3">
+                                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                            </svg>
+                                        </div>
+                                        <span class="text-sm text-gray-900">Savings</span>
+                                    </div>
+                                    <span class="text-sm text-gray-500">$500</span>
+                                </div>
+                                <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                                    <div class="flex items-center">
+                                        <div class="w-6 h-6 bg-red-100 rounded-md flex items-center justify-center mr-3">
+                                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H5a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                            </svg>
+                                        </div>
+                                        <span class="text-sm text-gray-900">Debt Payments</span>
+                                    </div>
+                                    <span class="text-sm text-gray-500">$300</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider">Variable Expenses</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                                    <div class="flex items-center">
+                                        <div class="w-6 h-6 bg-yellow-100 rounded-md flex items-center justify-center mr-3">
+                                            <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L6 5H2m5 8v6a2 2 0 002 2h8a2 2 0 002-2v-6m-10 0h10"/>
+                                            </svg>
+                                        </div>
+                                        <span class="text-sm text-gray-900">Food & Groceries</span>
+                                    </div>
+                                    <span class="text-sm text-gray-500">$400</span>
+                                </div>
+                                <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                                    <div class="flex items-center">
+                                        <div class="w-6 h-6 bg-purple-100 rounded-md flex items-center justify-center mr-3">
+                                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                            </svg>
+                                        </div>
+                                        <span class="text-sm text-gray-900">Transportation</span>
+                                    </div>
+                                    <span class="text-sm text-gray-500">$300</span>
+                                </div>
+                                <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                                    <div class="flex items-center">
+                                        <div class="w-6 h-6 bg-indigo-100 rounded-md flex items-center justify-center mr-3">
+                                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
+                                            </svg>
+                                        </div>
+                                        <span class="text-sm text-gray-900">Entertainment</span>
+                                    </div>
+                                    <span class="text-sm text-gray-500">$200</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-xs text-gray-500">
+                        <strong>Note:</strong> These are default amounts. You can edit any category amount after the budget is created.
+                    </p>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                    <a href="{% url 'budgets:home' %}"
+                       class="px-6 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-green-400 to-teal-400 hover:from-green-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Create Budget
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Additional Actions -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Need Custom Categories?</h3>
+                <p class="text-sm text-gray-600 mb-4">Create custom budget categories specific to your space needs.</p>
+                <a href="{% url 'budgets:category_create' %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Manage Categories
+                </a>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Copy Existing Budget?</h3>
+                <p class="text-sm text-gray-600 mb-4">Copy budget amounts from a previous month to save time.</p>
+                <a href="{% url 'budgets:copy' %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Copy Budget
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
