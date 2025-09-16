@@ -2,157 +2,249 @@
 
 {% block page_title %}My Spaces{% endblock %}
 
-{% block main_content %}
-<!-- Header Section -->
-<div class="mb-8">
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">My Spaces</h1>
-            <p class="mt-2 text-gray-600">Manage your shared financial spaces</p>
-        </div>
-        <div class="flex space-x-3">
-            <a href="{% url 'spaces:join' %}"
-               class="wallai-btn-outline">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Join Space
-            </a>
-            <a href="{% url 'spaces:create' %}"
-               class="wallai-btn">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Create Space
-            </a>
-        </div>
-    </div>
-</div>
+{% block content %}
+<div class="bg-gray-50 p-4 md:p-6 lg:p-8">
+    <div class="max-w-7xl mx-auto">
 
-<!-- Spaces Grid -->
-{% if spaces_data %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for item in spaces_data %}
-            <div class="wallai-card hover:shadow-xl transition-shadow duration-200">
-                <!-- Space Header -->
-                <div class="flex items-start justify-between mb-4">
-                    <div class="flex-1">
-                        <h3 class="text-xl font-semibold text-gray-900 mb-1">
-                            {{ item.space.name }}
-                        </h3>
-                        {% if item.space.description %}
-                            <p class="text-gray-600 text-sm">{{ item.space.description }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="flex-shrink-0">
-                        {% if item.is_owner %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Owner
-                            </span>
-                        {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                Member
-                            </span>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Space Stats -->
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-gray-900">{{ item.member_count }}</div>
-                        <div class="text-sm text-gray-500">
-                            {% if item.member_count == 1 %}Member{% else %}Members{% endif %}
-                        </div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-sm font-mono bg-gray-100 px-2 py-1 rounded text-gray-700">
-                            {{ item.space.invite_code }}
-                        </div>
-                        <div class="text-sm text-gray-500">Invite Code</div>
-                    </div>
-                </div>
-
-                <!-- Space Actions -->
-                <div class="flex space-x-2">
-                    <a href="{% url 'spaces:detail' item.space.pk %}"
-                       class="flex-1 bg-wallai-blue text-white text-center py-2 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors">
-                        View Details
-                    </a>
-                    {% if item.is_owner %}
-                        <a href="{% url 'spaces:update' item.space.pk %}"
-                           class="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors">
-                            Edit
-                        </a>
-                    {% endif %}
-                </div>
-
-                <!-- Created Date -->
-                <div class="mt-3 pt-3 border-t border-gray-200">
-                    <p class="text-xs text-gray-500">
-                        Created {{ item.space.created_at|date:"M j, Y" }}
+        <!-- Header Section -->
+        <div class="mb-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                        My Spaces 🏠
+                    </h1>
+                    <p class="text-gray-600">
+                        Manage your <span class="font-medium text-wallai-green">shared financial spaces</span> and collaborate with others
                     </p>
                 </div>
+                <div class="mt-6 md:mt-0 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+                    <a href="{% url 'spaces:archived' %}"
+                       class="bg-orange-100 text-orange-700 py-3 px-6 rounded-xl font-semibold text-center hover:bg-orange-200 transition-colors duration-200 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                        </svg>
+                        Archived
+                    </a>
+                    <a href="{% url 'spaces:join' %}"
+                       class="bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-semibold text-center hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                        </svg>
+                        Join Space
+                    </a>
+                    <a href="{% url 'spaces:create' %}"
+                       class="bg-gradient-to-r from-wallai-green to-wallai-teal text-white py-3 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Create Space
+                    </a>
+                </div>
             </div>
-        {% endfor %}
-    </div>
+        </div>
 
-{% else %}
-    <!-- Empty State -->
-    <div class="text-center py-12">
-        <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
-                </path>
-            </svg>
-        </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No spaces yet</h3>
-        <p class="text-gray-600 mb-6">Create your first space or join an existing one to get started.</p>
-        <div class="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="{% url 'spaces:create' %}"
-               class="wallai-btn">
-                Create Your First Space
-            </a>
-            <a href="{% url 'spaces:join' %}"
-               class="wallai-btn-outline">
-                Join Existing Space
-            </a>
-        </div>
-    </div>
-{% endif %}
+        <!-- Spaces Grid -->
+        {% if spaces_data %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% for item in spaces_data %}
+                    <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+                        <!-- Space Header -->
+                        <div class="flex items-start justify-between mb-6">
+                            <div class="flex items-start">
+                                <div class="w-12 h-12 bg-gradient-to-br from-wallai-green to-wallai-teal rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-9 9a1 1 0 001.414 1.414L8 5.414V17a1 1 0 102 0V5.414l6.293 6.293a1 1 0 001.414-1.414l-9-9z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-1 truncate">
+                                        {{ item.space.name }}
+                                    </h3>
+                                    {% if item.space.description %}
+                                        <p class="text-gray-600 text-sm line-clamp-2">{{ item.space.description }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0 ml-2">
+                                {% if item.is_owner %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-wallai-green to-wallai-teal text-white">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Owner
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                                        </svg>
+                                        Member
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
 
-<!-- Quick Stats -->
-{% if spaces_data %}
-<div class="mt-12 bg-gray-50 rounded-lg p-6">
-    <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Overview</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="text-center">
-            <div class="text-2xl font-bold text-wallai-green">{{ total_spaces }}</div>
-            <div class="text-sm text-gray-600">
-                Total {% if total_spaces == 1 %}Space{% else %}Spaces{% endif %}
+                        <!-- Space Stats -->
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <div class="w-8 h-8 bg-wallai-green rounded-lg flex items-center justify-center mx-auto mb-2">
+                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                                    </svg>
+                                </div>
+                                <div class="text-xl font-bold text-wallai-green">{{ item.member_count }}</div>
+                                <div class="text-xs text-gray-600 font-medium">
+                                    {% if item.member_count == 1 %}Member{% else %}Members{% endif %}
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <div class="w-8 h-8 bg-wallai-blue rounded-lg flex items-center justify-center mx-auto mb-2">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                    </svg>
+                                </div>
+                                <div class="text-sm font-mono font-bold text-wallai-blue">
+                                    {{ item.space.invite_code }}
+                                </div>
+                                <div class="text-xs text-gray-600 font-medium">Invite Code</div>
+                            </div>
+                        </div>
+
+                        <!-- Space Actions -->
+                        <div class="flex flex-col space-y-3">
+                            <a href="{% url 'spaces:detail' item.space.pk %}"
+                               class="w-full bg-gradient-to-r from-wallai-green to-wallai-teal text-white text-center py-3 px-4 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                View Details
+                            </a>
+                            {% if item.is_owner %}
+                                <a href="{% url 'spaces:update' item.space.pk %}"
+                                   class="w-full bg-gray-100 text-gray-700 text-center py-2 px-4 rounded-xl font-semibold hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                    Edit Space
+                                </a>
+                            {% endif %}
+                        </div>
+
+                        <!-- Created Date and Actions -->
+                        <div class="mt-4 pt-4 border-t border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs text-gray-500 flex items-center">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Created {{ item.space.created_at|date:"M j, Y" }}
+                                </p>
+                                {% if item.is_owner %}
+                                    <div class="flex items-center space-x-2">
+                                        <!-- Archive Button -->
+                                        <a href="{% url 'spaces:archive' item.space.pk %}"
+                                           class="inline-flex items-center justify-center w-8 h-8 bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700 rounded-lg transition-all duration-200"
+                                           title="Archive Space">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                                            </svg>
+                                        </a>
+
+                                        <!-- Delete Button -->
+                                        <a href="{% url 'spaces:delete' item.space.pk %}"
+                                           class="inline-flex items-center justify-center w-8 h-8 bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 rounded-lg transition-all duration-200"
+                                           title="Delete Space Permanently">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+            </div>
+                {% endfor %}
+            </div>
+
+        {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-16">
+                <div class="mx-auto w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-6">
+                    <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                        </path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-semibold text-gray-900 mb-3">No spaces yet</h3>
+                <p class="text-gray-600 mb-8 max-w-md mx-auto">Create your first space or join an existing one to start collaborating on shared expenses and budgets.</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="{% url 'spaces:create' %}"
+                       class="bg-gradient-to-r from-wallai-green to-wallai-teal text-white py-3 px-8 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Create Your First Space
+                    </a>
+                    <a href="{% url 'spaces:join' %}"
+                       class="bg-gray-100 text-gray-700 py-3 px-8 rounded-xl font-semibold hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                        </svg>
+                        Join Existing Space
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Quick Stats -->
+        {% if spaces_data %}
+        <div class="mt-12 bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div class="flex items-center mb-6">
+                <div class="w-10 h-10 bg-gradient-to-br from-wallai-blue to-wallai-teal rounded-xl flex items-center justify-center mr-3">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900">Quick Overview</h3>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div class="bg-gray-50 rounded-xl p-4 text-center">
+                    <div class="w-8 h-8 bg-wallai-green rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10.707 2.293a1 1 0 00-1.414 0l-9 9a1 1 0 001.414 1.414L8 5.414V17a1 1 0 102 0V5.414l6.293 6.293a1 1 0 001.414-1.414l-9-9z"/>
+                        </svg>
+                    </div>
+                    <div class="text-2xl font-bold text-wallai-green mb-1">{{ total_spaces }}</div>
+                    <div class="text-sm text-gray-600 font-medium">
+                        Total {% if total_spaces == 1 %}Space{% else %}Spaces{% endif %}
+                    </div>
+                </div>
+                <div class="bg-gray-50 rounded-xl p-4 text-center">
+                    <div class="w-8 h-8 bg-wallai-blue rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="text-2xl font-bold text-wallai-blue mb-1">{{ owned_count }}</div>
+                    <div class="text-sm text-gray-600 font-medium">Owned</div>
+                </div>
+                <div class="bg-gray-50 rounded-xl p-4 text-center">
+                    <div class="w-8 h-8 bg-wallai-teal rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                        </svg>
+                    </div>
+                    <div class="text-2xl font-bold text-wallai-teal mb-1">{{ joined_count }}</div>
+                    <div class="text-sm text-gray-600 font-medium">Joined</div>
+                </div>
             </div>
         </div>
-        <div class="text-center">
-            <div class="text-2xl font-bold text-wallai-blue">
-                {% for item in spaces_data %}
-                    {% if item.is_owner %}{{ forloop.counter }}{% endif %}
-                {% empty %}0{% endfor %}
-            </div>
-            <div class="text-sm text-gray-600">Owned</div>
-        </div>
-        <div class="text-center">
-            <div class="text-2xl font-bold text-wallai-teal">
-                {% for item in spaces_data %}
-                    {% if not item.is_owner %}{{ forloop.counter }}{% endif %}
-                {% empty %}0{% endfor %}
-            </div>
-            <div class="text-sm text-gray-600">Joined</div>
-        </div>
+        {% endif %}
+
     </div>
 </div>
-{% endif %}
-
 {% endblock %}
 
 {% block extra_js %}

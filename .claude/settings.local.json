@@ -16,7 +16,12 @@
       "Bash(python:*)",
       "Bash(curl:*)",
       "Bash(dir C:dev12modocs)",
-      "Bash(dir \"C:\\dev\\12mo\\static\\pwa\")"
+      "Bash(dir \"C:\\dev\\12mo\\static\\pwa\")",
+      "Bash(dir docs)",
+      "Read(//c/**)",
+      "Bash(findstr:*)",
+      "Bash(dir:*)",
+      "Bash(copy:*)"
     ],
     "deny": [],
     "ask": []

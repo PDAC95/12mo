@@ -1,5 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.forms.widgets import RadioSelect
 from .models import Space, SpaceMember
 
 
@@ -8,23 +9,31 @@ class SpaceCreateForm(forms.ModelForm):
 
     class Meta:
         model = Space
-        fields = ['name', 'description']
+        fields = ['name', 'description', 'color', 'icon']
         widgets = {
             'name': forms.TextInput(attrs={
-                'class': 'wallai-input',
+                'class': 'w-full pl-10 pr-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:border-wallai-green focus:outline-none focus:ring-2 focus:ring-wallai-green/20 transition-all duration-200',
                 'placeholder': 'Enter space name (e.g., "Family Budget", "Roommates")',
-                'maxlength': 100,
+                'maxlength': 50,
             }),
             'description': forms.Textarea(attrs={
-                'class': 'wallai-input',
+                'class': 'w-full pl-10 pr-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:border-wallai-green focus:outline-none focus:ring-2 focus:ring-wallai-green/20 transition-all duration-200 resize-none',
                 'placeholder': 'Optional: Describe what this space is for',
-                'rows': 3,
-                'maxlength': 500,
+                'rows': 4,
+                'maxlength': 200,
+            }),
+            'color': forms.RadioSelect(attrs={
+                'class': 'space-y-2',
+            }),
+            'icon': forms.RadioSelect(attrs={
+                'class': 'space-y-2',
             }),
         }
         help_texts = {
             'name': 'Choose a name that clearly identifies this shared space',
             'description': 'Help members understand the purpose of this space',
+            'color': 'Pick a color theme for your space',
+            'icon': 'Choose an icon that represents this space',
         }
 
     def clean_name(self):
@@ -33,9 +42,15 @@ class SpaceCreateForm(forms.ModelForm):
             name = name.strip()
             if len(name) < 2:
                 raise ValidationError('Space name must be at least 2 characters long.')
-            if len(name) > 100:
-                raise ValidationError('Space name cannot exceed 100 characters.')
+            if len(name) > 50:
+                raise ValidationError('Space name cannot exceed 50 characters.')
         return name
+
+    def clean_description(self):
+        description = self.cleaned_data.get('description')
+        if description and len(description.strip()) > 200:
+            raise ValidationError('Space description cannot exceed 200 characters.')
+        return description
 
     def save(self, commit=True, user=None):
         """Save the space and automatically add creator as owner"""
@@ -66,7 +81,7 @@ class JoinSpaceForm(forms.Form):
         max_length=6,
         min_length=6,
         widget=forms.TextInput(attrs={
-            'class': 'wallai-input text-center text-2xl font-mono tracking-widest uppercase',
+            'class': 'w-full px-4 py-4 bg-white border-2 border-gray-200 rounded-xl text-gray-900 text-center text-2xl font-mono tracking-widest uppercase placeholder-gray-400 focus:border-wallai-green focus:outline-none focus:ring-2 focus:ring-wallai-green/20 transition-all duration-200',
             'placeholder': 'ABC123',
             'style': 'text-transform: uppercase;',
             'autocomplete': 'off',
@@ -117,18 +132,24 @@ class SpaceUpdateForm(forms.ModelForm):
 
     class Meta:
         model = Space
-        fields = ['name', 'description']
+        fields = ['name', 'description', 'color', 'icon']
         widgets = {
             'name': forms.TextInput(attrs={
-                'class': 'wallai-input',
+                'class': 'w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:border-wallai-green focus:outline-none focus:ring-2 focus:ring-wallai-green/20 transition-all duration-200',
                 'placeholder': 'Space name',
                 'maxlength': 100,
             }),
             'description': forms.Textarea(attrs={
-                'class': 'wallai-input',
+                'class': 'w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:border-wallai-green focus:outline-none focus:ring-2 focus:ring-wallai-green/20 transition-all duration-200 resize-none',
                 'placeholder': 'Space description',
-                'rows': 3,
+                'rows': 4,
                 'maxlength': 500,
+            }),
+            'color': forms.RadioSelect(attrs={
+                'class': 'space-y-2',
+            }),
+            'icon': forms.RadioSelect(attrs={
+                'class': 'space-y-2',
             }),
         }
 
@@ -147,7 +168,7 @@ class RegenerateInviteCodeForm(forms.Form):
     confirm = forms.BooleanField(
         required=True,
         widget=forms.CheckboxInput(attrs={
-            'class': 'form-checkbox text-wallai-green',
+            'class': 'w-4 h-4 text-wallai-green bg-white border-2 border-gray-200 rounded focus:ring-wallai-green focus:ring-2 transition-all duration-200',
         }),
         label='I understand that the old invite code will no longer work',
         help_text='Anyone with the current invite code will no longer be able to join'
