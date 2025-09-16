@@ -608,13 +608,14 @@ python manage.py check
 4. JWT authentication
 5. Task documentation
 
-**Current Sprint:** Sprint 1 - Spaces & Members  
-**Sprint Goal:** Implement multi-user spaces with invitation system  
-**Sprint Start Date:** September 11, 2025  
-**Sprint End Date:** September 17, 2025
+**Current Sprint:** Sprint 3 - Expense Tracking
+**Sprint Goal:** Real-time expense tracking with budget integration
+**Sprint Start Date:** September 17, 2025
+**Sprint End Date:** September 24, 2025
 
-**Sprint 0 Status:** ✅ COMPLETED (September 10, 2025)  
-**US-0 Foundation UI Status:** ✅ COMPLETED (September 10, 2025)
+**Sprint 0 Status:** ✅ COMPLETED (September 10, 2025)
+**Sprint 1 Status:** ✅ COMPLETED (September 16, 2025) - Spaces & Members
+**Sprint 2 Status:** ✅ COMPLETED (September 16, 2025) - Budget Management
 
 ---
 
