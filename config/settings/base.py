@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'budgets',
     'expenses',
     'dashboard',
+    'notifications',
 ]
 
 MIDDLEWARE = [

@@ -134,6 +134,8 @@
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
   border: 2px solid #d1d5db;
+  background-color: #ffffff;
+  color: #1f2937;
   transition: border-color 0.2s;
 }
 
@@ -190,9 +192,9 @@
   }
 
   .wallai-input {
-    background-color: #1f2937;
-    color: white;
-    border-color: #4b5563;
+    background-color: #ffffff;
+    color: #1f2937;
+    border-color: #d1d5db;
   }
 }
 

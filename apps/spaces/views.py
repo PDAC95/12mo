@@ -8,7 +8,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_protect
 
 from .models import Space, SpaceMember
-from .forms import SpaceCreateForm, JoinSpaceForm, SpaceUpdateForm, RegenerateInviteCodeForm
+from .forms import SpaceCreateForm, JoinSpaceForm, SpaceUpdateForm, RegenerateInviteCodeForm, SpaceSettingsForm
 from .utils import SpaceContextManager, get_space_context
 # Force reload for new templates
 
@@ -625,3 +625,184 @@ def archived_spaces(request):
         'total_archived': len(spaces_data),
     }
     return render(request, 'spaces/archived.html', context)
+
+
+@login_required
+def space_settings(request, pk):
+    """Configure space settings and approval rules (owner only)"""
+    try:
+        space = get_object_or_404(Space, pk=pk, is_active=True)
+
+        # Check if user is the owner
+        try:
+            user_member = space.spacemember_set.get(user=request.user, is_active=True)
+            if user_member.role != 'owner':
+                messages.error(request, 'Only space owners can configure settings.')
+                return redirect('spaces:detail', pk=space.pk)
+        except SpaceMember.DoesNotExist:
+            messages.error(request, 'You are not a member of this space.')
+            return redirect('spaces:list')
+
+        # Get or create space settings
+        settings, created = space.settings, False
+        if not hasattr(space, 'settings'):
+            from .models import SpaceSettings
+            settings = SpaceSettings.objects.create(space=space)
+            created = True
+
+        if request.method == 'POST':
+            from .forms import SpaceSettingsForm
+            form = SpaceSettingsForm(request.POST, instance=settings)
+
+            if form.is_valid():
+                form.save()
+                messages.success(request, f'Settings for "{space.name}" have been updated successfully.')
+                return redirect('spaces:settings', pk=space.pk)
+            else:
+                messages.error(request, 'Please correct the errors below.')
+        else:
+            from .forms import SpaceSettingsForm
+            form = SpaceSettingsForm(instance=settings)
+
+        # Get space member count for context
+        member_count = space.member_count
+
+        context = {
+            'space': space,
+            'settings': settings,
+            'form': form,
+            'member_count': member_count,
+            'is_new_settings': created,
+        }
+        return render(request, 'spaces/settings.html', context)
+
+    except Exception as e:
+        messages.error(request, 'Unable to load space settings. Please try again.')
+        return redirect('spaces:detail', pk=pk)
+
+
+@login_required
+def pending_approvals(request):
+    """View pending approval requests for user"""
+    from budgets.services import BudgetChangeService
+
+    pending_requests = BudgetChangeService.get_pending_approvals_for_user(request.user)
+
+    context = {
+        'pending_requests': pending_requests,
+        'total_pending': pending_requests.count(),
+    }
+    return render(request, 'spaces/pending_approvals.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_protect
+def approve_change(request, request_id):
+    """Approve a budget change request"""
+    try:
+        from budgets.approval_models import BudgetChangeRequest
+
+        change_request = get_object_or_404(BudgetChangeRequest, id=request_id, status='pending')
+
+        # Check if user is a member of the space and can approve
+        space = change_request.budget_item.space
+        try:
+            user_member = space.spacemember_set.get(user=request.user, is_active=True)
+
+            # Cannot approve own requests
+            if change_request.requested_by == request.user:
+                messages.error(request, 'You cannot approve your own requests.')
+                return redirect('spaces:pending_approvals')
+
+        except SpaceMember.DoesNotExist:
+            messages.error(request, 'You are not authorized to approve this request.')
+            return redirect('spaces:pending_approvals')
+
+        # Approve the request
+        change_request.approve(request.user)
+
+        item_name = change_request.budget_item.category.name
+        requester_name = change_request.requested_by.first_name or change_request.requested_by.username
+
+        if change_request.status == 'approved':
+            messages.success(request, f'Approved change to "{item_name}" requested by {requester_name}. Change has been applied.')
+        else:
+            messages.success(request, f'Your approval for "{item_name}" has been recorded. Waiting for other members.')
+
+        return redirect('spaces:pending_approvals')
+
+    except Exception as e:
+        messages.error(request, 'Unable to approve request. Please try again.')
+        return redirect('spaces:pending_approvals')
+
+
+@login_required
+@require_http_methods(["POST"])
+@csrf_protect
+def reject_change(request, request_id):
+    """Reject a budget change request"""
+    try:
+        from budgets.approval_models import BudgetChangeRequest
+
+        change_request = get_object_or_404(BudgetChangeRequest, id=request_id, status='pending')
+
+        # Check if user is a member of the space and can reject
+        space = change_request.budget_item.space
+        try:
+            user_member = space.spacemember_set.get(user=request.user, is_active=True)
+
+            # Cannot reject own requests
+            if change_request.requested_by == request.user:
+                messages.error(request, 'You cannot reject your own requests.')
+                return redirect('spaces:pending_approvals')
+
+        except SpaceMember.DoesNotExist:
+            messages.error(request, 'You are not authorized to reject this request.')
+            return redirect('spaces:pending_approvals')
+
+        # Get rejection reason from form
+        reason = request.POST.get('reason', '').strip()
+
+        # Reject the request
+        change_request.reject(request.user, reason)
+
+        item_name = change_request.budget_item.category.name
+        requester_name = change_request.requested_by.first_name or change_request.requested_by.username
+
+        messages.success(request, f'Rejected change to "{item_name}" requested by {requester_name}.')
+
+        return redirect('spaces:pending_approvals')
+
+    except Exception as e:
+        messages.error(request, 'Unable to reject request. Please try again.')
+        return redirect('spaces:pending_approvals')
+
+
+@login_required
+def change_history(request, pk):
+    """View change history for a space"""
+    try:
+        space = get_object_or_404(Space, pk=pk, is_active=True)
+
+        # Check if user is a member
+        try:
+            user_member = space.spacemember_set.get(user=request.user, is_active=True)
+        except SpaceMember.DoesNotExist:
+            messages.error(request, 'You are not a member of this space.')
+            return redirect('spaces:list')
+
+        # Get change history
+        from budgets.services import BudgetChangeService
+        history = BudgetChangeService.get_space_change_history(space, limit=50)
+
+        context = {
+            'space': space,
+            'history': history,
+            'total_changes': history.count() if hasattr(history, 'count') else len(history),
+        }
+        return render(request, 'spaces/change_history.html', context)
+
+    except Exception as e:
+        messages.error(request, 'Unable to load change history. Please try again.')
+        return redirect('spaces:detail', pk=pk)

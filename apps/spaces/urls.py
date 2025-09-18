@@ -28,6 +28,15 @@ urlpatterns = [
     path('<int:pk>/switch/', views.switch_space, name='switch'),
     path('<int:pk>/set-default/', views.set_default_space, name='set_default'),
 
+    # Space settings and configuration
+    path('<int:pk>/settings/', views.space_settings, name='settings'),
+    path('<int:pk>/history/', views.change_history, name='history'),
+
+    # Approval system
+    path('pending/', views.pending_approvals, name='pending_approvals'),
+    path('approve/<int:request_id>/', views.approve_change, name='approve_change'),
+    path('reject/<int:request_id>/', views.reject_change, name='reject_change'),
+
     # API endpoints
     path('<int:pk>/members/api/', views.space_members_api, name='members_api'),
 ]

@@ -253,6 +253,13 @@ class Space(models.Model):
 
         return member
 
+    def get_settings(self):
+        """Get or create settings for this space"""
+        try:
+            return self.settings
+        except SpaceSettings.DoesNotExist:
+            return SpaceSettings.objects.create(space=self)
+
 
 class SpaceMember(models.Model):
     """Relationship between users and spaces with roles"""
@@ -316,3 +323,153 @@ class SpaceMember(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class SpaceSettings(models.Model):
+    """Configuration settings for each space"""
+
+    APPROVAL_MODE_CHOICES = [
+        ('none', 'Sin aprobaciones - Cambios libres'),
+        ('all', 'Todos los cambios requieren aprobación'),
+        ('percentage', 'Solo cambios mayores a X%'),
+        ('custom', 'Reglas personalizadas'),
+    ]
+
+    space = models.OneToOneField(
+        Space,
+        on_delete=models.CASCADE,
+        related_name='settings',
+        help_text="Space these settings belong to"
+    )
+
+    # Approval settings
+    approval_mode = models.CharField(
+        max_length=20,
+        choices=APPROVAL_MODE_CHOICES,
+        default='percentage',
+        help_text="How budget changes should be approved"
+    )
+
+    approval_percentage_threshold = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=10.00,
+        help_text="Minimum percentage change that requires approval"
+    )
+
+    approval_timeout_days = models.IntegerField(
+        default=3,
+        help_text="Days to wait before auto-approving pending changes"
+    )
+
+    # Notification settings
+    notifications_in_app = models.BooleanField(
+        default=True,
+        help_text="Send in-app notifications"
+    )
+
+    notifications_email = models.BooleanField(
+        default=False,
+        help_text="Also send email notifications"
+    )
+
+    # Specific rules
+    shared_expenses_require_approval = models.BooleanField(
+        default=True,
+        help_text="Shared expenses always require approval"
+    )
+
+    recurring_changes_require_approval = models.BooleanField(
+        default=True,
+        help_text="Changes to recurring items require approval"
+    )
+
+    deletion_requires_approval = models.BooleanField(
+        default=True,
+        help_text="Deleting budget items requires approval"
+    )
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'space_settings'
+        verbose_name = 'Space Settings'
+        verbose_name_plural = 'Space Settings'
+
+    def __str__(self):
+        return f"Settings for {self.space.name}"
+
+    def clean(self):
+        """Custom validation"""
+        if self.approval_percentage_threshold < 0 or self.approval_percentage_threshold > 100:
+            raise ValidationError({
+                'approval_percentage_threshold': 'Percentage must be between 0 and 100'
+            })
+
+        if self.approval_timeout_days < 1 or self.approval_timeout_days > 30:
+            raise ValidationError({
+                'approval_timeout_days': 'Timeout must be between 1 and 30 days'
+            })
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def requires_approval_for_change(self, change_type, old_amount=None, new_amount=None, is_shared=False, is_recurring=False):
+        """
+        Determine if a change requires approval based on space settings
+
+        Args:
+            change_type (str): Type of change ('amount', 'assignment', 'date', 'delete')
+            old_amount (Decimal): Original amount (for amount changes)
+            new_amount (Decimal): New amount (for amount changes)
+            is_shared (bool): Whether the expense is shared
+            is_recurring (bool): Whether the expense is recurring
+
+        Returns:
+            bool: True if approval is required
+        """
+
+        # Check approval mode
+        if self.approval_mode == 'none':
+            return False
+
+        if self.approval_mode == 'all':
+            return True
+
+        # Check specific rules first
+        if change_type == 'delete' and self.deletion_requires_approval:
+            return True
+
+        if is_shared and self.shared_expenses_require_approval:
+            return True
+
+        if is_recurring and self.recurring_changes_require_approval:
+            return True
+
+        # Check percentage threshold for amount changes
+        if change_type == 'amount' and old_amount and new_amount and self.approval_mode == 'percentage':
+            if old_amount == 0:
+                return True  # New expense always requires approval
+
+            percentage_change = abs((new_amount - old_amount) / old_amount) * 100
+            return percentage_change >= self.approval_percentage_threshold
+
+        # For assignment and date changes under percentage mode
+        if self.approval_mode == 'percentage':
+            return change_type in ['assignment']  # Assignment changes always need approval
+
+        return False
+
+
+# Signal to auto-create SpaceSettings when a Space is created
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=Space)
+def create_space_settings(sender, instance, created, **kwargs):
+    """Automatically create default settings when a space is created"""
+    if created:
+        SpaceSettings.objects.create(space=instance)

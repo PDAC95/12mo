@@ -1,7 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms.widgets import RadioSelect
-from .models import Space, SpaceMember
+from .models import Space, SpaceMember, SpaceSettings
 
 
 class SpaceCreateForm(forms.ModelForm):
@@ -187,3 +187,125 @@ class RegenerateInviteCodeForm(forms.Form):
         space.save(update_fields=['invite_code', 'updated_at'])
 
         return space
+
+
+class SpaceSettingsForm(forms.ModelForm):
+    """Form for configuring space settings and approval rules"""
+
+    class Meta:
+        model = SpaceSettings
+        fields = [
+            'approval_mode',
+            'approval_percentage_threshold',
+            'approval_timeout_days',
+            'notifications_in_app',
+            'notifications_email',
+            'shared_expenses_require_approval',
+            'recurring_changes_require_approval',
+            'deletion_requires_approval',
+        ]
+        widgets = {
+            'approval_mode': forms.RadioSelect(attrs={
+                'class': 'space-y-3',
+            }),
+            'approval_percentage_threshold': forms.NumberInput(attrs={
+                'class': 'w-24 px-3 py-2 bg-white border-2 border-gray-200 rounded-lg text-gray-900 focus:border-wallai-green focus:outline-none transition-all duration-200',
+                'min': '0',
+                'max': '100',
+                'step': '0.1',
+            }),
+            'approval_timeout_days': forms.NumberInput(attrs={
+                'class': 'w-20 px-3 py-2 bg-white border-2 border-gray-200 rounded-lg text-gray-900 focus:border-wallai-green focus:outline-none transition-all duration-200',
+                'min': '1',
+                'max': '30',
+            }),
+            'notifications_in_app': forms.CheckboxInput(attrs={
+                'class': 'w-5 h-5 text-wallai-green bg-white border-2 border-gray-300 rounded focus:ring-wallai-green focus:ring-2 transition-all duration-200',
+            }),
+            'notifications_email': forms.CheckboxInput(attrs={
+                'class': 'w-5 h-5 text-wallai-green bg-white border-2 border-gray-300 rounded focus:ring-wallai-green focus:ring-2 transition-all duration-200',
+            }),
+            'shared_expenses_require_approval': forms.CheckboxInput(attrs={
+                'class': 'w-5 h-5 text-wallai-green bg-white border-2 border-gray-300 rounded focus:ring-wallai-green focus:ring-2 transition-all duration-200',
+            }),
+            'recurring_changes_require_approval': forms.CheckboxInput(attrs={
+                'class': 'w-5 h-5 text-wallai-green bg-white border-2 border-gray-300 rounded focus:ring-wallai-green focus:ring-2 transition-all duration-200',
+            }),
+            'deletion_requires_approval': forms.CheckboxInput(attrs={
+                'class': 'w-5 h-5 text-wallai-green bg-white border-2 border-gray-300 rounded focus:ring-wallai-green focus:ring-2 transition-all duration-200',
+            }),
+        }
+        labels = {
+            'approval_mode': 'How should budget changes be approved?',
+            'approval_percentage_threshold': 'Percentage threshold for approval',
+            'approval_timeout_days': 'Days before auto-approval',
+            'notifications_in_app': 'Enable in-app notifications',
+            'notifications_email': 'Also send email notifications',
+            'shared_expenses_require_approval': 'Shared expenses always require approval',
+            'recurring_changes_require_approval': 'Changes to recurring items require approval',
+            'deletion_requires_approval': 'Deleting budget items requires approval',
+        }
+        help_texts = {
+            'approval_mode': 'Choose when budget changes need approval from other members',
+            'approval_percentage_threshold': 'Changes above this percentage will require approval (when using percentage mode)',
+            'approval_timeout_days': 'After this many days, pending changes will be automatically approved',
+            'notifications_in_app': 'Members will see notifications within Wallai',
+            'notifications_email': 'Members will also receive email notifications (requires in-app notifications)',
+            'shared_expenses_require_approval': 'Any shared expense will always need approval regardless of amount',
+            'recurring_changes_require_approval': 'Changes to recurring expenses will need approval',
+            'deletion_requires_approval': 'Removing budget items will need approval',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Dynamic help text for approval mode based on space
+        approval_mode_field = self.fields['approval_mode']
+        approval_mode_field.widget.attrs.update({'x-model': 'approvalMode'})
+
+        # Add Alpine.js data for dynamic UI
+        self.approval_mode_choices_with_descriptions = [
+            ('none', 'No Approvals', 'Changes can be made freely by any member'),
+            ('all', 'All Changes', 'Every budget change requires approval from other members'),
+            ('percentage', 'Percentage Based', 'Only changes above a certain percentage require approval'),
+            ('custom', 'Custom Rules', 'Use specific rules for different types of changes'),
+        ]
+
+    def clean_approval_percentage_threshold(self):
+        threshold = self.cleaned_data.get('approval_percentage_threshold')
+        if threshold is not None:
+            if threshold < 0:
+                raise ValidationError('Percentage threshold cannot be negative.')
+            if threshold > 100:
+                raise ValidationError('Percentage threshold cannot exceed 100%.')
+        return threshold
+
+    def clean_approval_timeout_days(self):
+        timeout = self.cleaned_data.get('approval_timeout_days')
+        if timeout is not None:
+            if timeout < 1:
+                raise ValidationError('Timeout must be at least 1 day.')
+            if timeout > 30:
+                raise ValidationError('Timeout cannot exceed 30 days.')
+        return timeout
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        # Email notifications require in-app notifications
+        if cleaned_data.get('notifications_email') and not cleaned_data.get('notifications_in_app'):
+            raise ValidationError({
+                'notifications_email': 'Email notifications require in-app notifications to be enabled.'
+            })
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        """Save the space settings"""
+        instance = super().save(commit=commit)
+
+        if commit:
+            # Any additional logic after saving settings
+            pass
+
+        return instance

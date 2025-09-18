@@ -188,6 +188,151 @@ def budget_create(request):
 
 
 @login_required
+def budget_create_from_scratch(request):
+    """Create budget from scratch with step-by-step interface"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        messages.error(request, 'Please select a space to create budgets.')
+        return redirect('spaces:list')
+
+    # Get current month
+    current_month = timezone.now().strftime('%Y-%m')
+    month_period = request.GET.get('month', current_month)
+
+    # Get available categories for this space
+    available_categories = BudgetCategory.objects.filter(
+        models.Q(space=current_space) | models.Q(space__isnull=True)
+    ).exclude(
+        budget__space=current_space,
+        budget__month_period=month_period,
+        budget__is_active=True
+    ).order_by('name')
+
+    # Get current budget items for this month
+    current_budget_items = Budget.objects.filter(
+        space=current_space,
+        month_period=month_period,
+        is_active=True
+    ).select_related('category', 'assigned_to').order_by('category__name')
+
+    # Calculate total budget
+    total_budget = current_budget_items.aggregate(
+        total=models.Sum('amount')
+    )['total'] or Decimal('0.00')
+
+    # Get space members for assignment
+    space_members = User.objects.filter(
+        spacemember__space=current_space,
+        spacemember__is_active=True
+    ).distinct()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'add_item':
+            # Add individual budget item
+            category_id = request.POST.get('category')
+            amount = request.POST.get('amount')
+            assigned_to_id = request.POST.get('assigned_to')
+            is_estimated = request.POST.get('is_estimated') == 'on'
+            is_recurring = request.POST.get('is_recurring') == 'on'
+
+            try:
+                category = BudgetCategory.objects.get(id=category_id)
+                assigned_to = User.objects.get(id=assigned_to_id) if assigned_to_id else None
+
+                # Check if budget item already exists
+                existing = Budget.objects.filter(
+                    space=current_space,
+                    category=category,
+                    month_period=month_period,
+                    is_active=True
+                ).first()
+
+                if existing:
+                    messages.error(request, f'Budget item for {category.name} already exists for this month.')
+                else:
+                    Budget.objects.create(
+                        space=current_space,
+                        category=category,
+                        amount=Decimal(amount),
+                        assigned_to=assigned_to,
+                        month_period=month_period,
+                        is_estimated=is_estimated,
+                        is_recurring=is_recurring,
+                        created_by=request.user
+                    )
+                    messages.success(request, f'Added {category.name} to your budget.')
+
+            except (BudgetCategory.DoesNotExist, ValueError) as e:
+                messages.error(request, 'Invalid category or amount.')
+
+        elif action == 'remove_item':
+            # Remove budget item
+            budget_id = request.POST.get('budget_id')
+            try:
+                budget = Budget.objects.get(
+                    id=budget_id,
+                    space=current_space,
+                    month_period=month_period
+                )
+                budget_name = budget.category.name
+                budget.delete()
+                messages.success(request, f'Removed {budget_name} from your budget.')
+            except Budget.DoesNotExist:
+                messages.error(request, 'Budget item not found.')
+
+        elif action in ['add_essentials', 'add_savings', 'add_lifestyle']:
+            # Add template categories
+            template_categories = {
+                'add_essentials': ['Housing & Rent', 'Food & Groceries', 'Transportation'],
+                'add_savings': ['Savings', 'Emergency Fund'],
+                'add_lifestyle': ['Entertainment', 'Dining Out', 'Hobbies']
+            }
+
+            added_count = 0
+            for cat_name in template_categories[action]:
+                category = BudgetCategory.objects.filter(
+                    models.Q(space=current_space) | models.Q(space__isnull=True),
+                    name=cat_name
+                ).first()
+
+                if category:
+                    existing = Budget.objects.filter(
+                        space=current_space,
+                        category=category,
+                        month_period=month_period,
+                        is_active=True
+                    ).first()
+
+                    if not existing:
+                        Budget.objects.create(
+                            space=current_space,
+                            category=category,
+                            amount=Decimal('0.01'),  # Minimal amount to start
+                            month_period=month_period,
+                            created_by=request.user
+                        )
+                        added_count += 1
+
+            if added_count > 0:
+                messages.success(request, f'Added {added_count} template categories. Set your amounts above.')
+            else:
+                messages.info(request, 'All template categories already exist in your budget.')
+
+        return redirect(f'?month={month_period}')
+
+    return render(request, 'budgets/create_from_scratch.html', {
+        'current_space': current_space,
+        'month_period': month_period,
+        'available_categories': available_categories,
+        'current_budget_items': current_budget_items,
+        'total_budget': total_budget,
+        'space_members': space_members,
+    })
+
+
+@login_required
 def budget_edit(request, budget_id):
     """Edit individual budget"""
     current_space = SpaceContextManager.get_current_space(request)
@@ -204,7 +349,7 @@ def budget_edit(request, budget_id):
         if form.is_valid():
             budget = form.save()
             messages.success(request, f'Budget for {budget.category.name} updated successfully.')
-            return redirect('budgets:month_view', month_period=budget.month_period)
+            return redirect('budgets:home')
     else:
         form = BudgetForm(
             instance=budget,

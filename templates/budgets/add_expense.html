@@ -1,0 +1,372 @@
+{% extends 'authenticated/base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Add Expense - {{ budget.category.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-20">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Add Expense</h1>
+                    <p class="mt-1 text-sm text-gray-600">{{ current_space.name }} • {{ budget.category.name }}</p>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{% url 'budgets:home' %}"
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Cancel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Budget Context -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-10 h-10">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ budget.category.icon_class }}"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-blue-900">{{ budget.category.name }}</h3>
+                    <p class="text-sm text-blue-700">Budget: ${{ budget.amount|floatformat:2 }} • {{ budget.month_period }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Expense Form -->
+        <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Expense Details</h2>
+            </div>
+
+            <form method="post" class="p-6 space-y-6" id="expense-form">
+                {% csrf_token %}
+
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Total Amount -->
+                    <div>
+                        <label for="total_amount" class="block text-sm font-medium text-gray-700 mb-2">
+                            Total Amount
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input type="number"
+                                   name="total_amount"
+                                   id="total_amount"
+                                   step="0.01"
+                                   min="0.01"
+                                   class="wallai-input pl-7 bg-white text-gray-900"
+                                   placeholder="0.00"
+                                   required
+                                   onchange="calculateSplits()">
+                        </div>
+                    </div>
+
+                    <!-- Date Paid -->
+                    <div>
+                        <label for="date_paid" class="block text-sm font-medium text-gray-700 mb-2">
+                            Date Paid
+                        </label>
+                        <input type="date"
+                               name="date_paid"
+                               id="date_paid"
+                               class="wallai-input bg-white text-gray-900"
+                               required>
+                    </div>
+
+                    <!-- Paid By -->
+                    <div>
+                        <label for="paid_by" class="block text-sm font-medium text-gray-700 mb-2">
+                            Paid By
+                        </label>
+                        <select name="paid_by"
+                                id="paid_by"
+                                class="wallai-input bg-white text-gray-900"
+                                required>
+                            {% for member in space_members %}
+                                <option value="{{ member.id }}">{{ member.first_name|default:member.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                            Description (Optional)
+                        </label>
+                        <input type="text"
+                               name="description"
+                               id="description"
+                               class="wallai-input bg-white text-gray-900"
+                               placeholder="What was this expense for?">
+                    </div>
+                </div>
+
+                <!-- Expense Sharing -->
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Expense Sharing</h3>
+                        <label class="flex items-center">
+                            <input type="checkbox"
+                                   name="is_shared"
+                                   id="is_shared"
+                                   class="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                   onchange="toggleSharing()">
+                            <span class="ml-2 text-sm text-gray-700">Split this expense</span>
+                        </label>
+                    </div>
+
+                    <!-- Split Options (hidden by default) -->
+                    <div id="split-options" class="hidden space-y-6">
+                        <!-- Split Type Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Split Method</label>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <label class="relative">
+                                    <input type="radio" name="split_type" value="equal" class="sr-only peer" checked onchange="changeSplitType()">
+                                    <div class="w-full p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-green-500 peer-checked:bg-green-50">
+                                        <div class="text-center">
+                                            <svg class="w-8 h-8 mx-auto text-green-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 15h16M4 11h16"/>
+                                            </svg>
+                                            <h4 class="font-medium text-gray-900">Equal Split</h4>
+                                            <p class="text-xs text-gray-500 mt-1">Divide equally among selected members</p>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label class="relative">
+                                    <input type="radio" name="split_type" value="percentage" class="sr-only peer" onchange="changeSplitType()">
+                                    <div class="w-full p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-green-500 peer-checked:bg-green-50">
+                                        <div class="text-center">
+                                            <svg class="w-8 h-8 mx-auto text-green-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                            </svg>
+                                            <h4 class="font-medium text-gray-900">By Percentage</h4>
+                                            <p class="text-xs text-gray-500 mt-1">Custom percentage for each member</p>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label class="relative">
+                                    <input type="radio" name="split_type" value="custom" class="sr-only peer" onchange="changeSplitType()">
+                                    <div class="w-full p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-green-500 peer-checked:bg-green-50">
+                                        <div class="text-center">
+                                            <svg class="w-8 h-8 mx-auto text-green-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                            </svg>
+                                            <h4 class="font-medium text-gray-900">Custom Amount</h4>
+                                            <p class="text-xs text-gray-500 mt-1">Specific amount for each member</p>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Member Selection and Split Details -->
+                        <div id="split-details">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Split Between Members</h4>
+                            <div class="space-y-3">
+                                {% for member in space_members %}
+                                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg member-split" data-member-id="{{ member.id }}">
+                                    <div class="flex items-center">
+                                        <input type="checkbox"
+                                               name="split_members"
+                                               value="{{ member.id }}"
+                                               id="member_{{ member.id }}"
+                                               class="rounded border-gray-300 text-green-600 focus:ring-green-500 member-checkbox"
+                                               onchange="updateSplitOptions()">
+                                        <label for="member_{{ member.id }}" class="ml-3 text-sm font-medium text-gray-900">
+                                            {{ member.first_name|default:member.username }}
+                                        </label>
+                                    </div>
+
+                                    <!-- Equal Split (default - no input needed) -->
+                                    <div class="split-input equal-split">
+                                        <span class="text-sm text-gray-500 amount-display">-</span>
+                                    </div>
+
+                                    <!-- Percentage Split -->
+                                    <div class="split-input percentage-split hidden">
+                                        <div class="flex items-center space-x-2">
+                                            <input type="number"
+                                                   name="percentage_{{ member.id }}"
+                                                   id="percentage_{{ member.id }}"
+                                                   step="0.01"
+                                                   min="0"
+                                                   max="100"
+                                                   class="w-20 wallai-input bg-white text-gray-900 text-center"
+                                                   placeholder="0"
+                                                   onchange="calculateSplits()">
+                                            <span class="text-sm text-gray-500">%</span>
+                                            <span class="text-sm text-gray-500 amount-display">= $0.00</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Custom Amount Split -->
+                                    <div class="split-input custom-split hidden">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-sm text-gray-500">$</span>
+                                            <input type="number"
+                                                   name="amount_{{ member.id }}"
+                                                   id="amount_{{ member.id }}"
+                                                   step="0.01"
+                                                   min="0"
+                                                   class="w-24 wallai-input bg-white text-gray-900 text-center"
+                                                   placeholder="0.00"
+                                                   onchange="calculateSplits()">
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Split Summary -->
+                            <div id="split-summary" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+                                <h5 class="text-sm font-medium text-gray-900 mb-2">Split Summary</h5>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Total Allocated:</span>
+                                    <span id="total-allocated" class="font-medium">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Remaining:</span>
+                                    <span id="remaining-amount" class="font-medium">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                    <a href="{% url 'budgets:home' %}"
+                       class="px-6 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-green-400 to-teal-400 hover:from-green-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Add Expense
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set today's date as default
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date_paid').value = today;
+});
+
+function toggleSharing() {
+    const isShared = document.getElementById('is_shared').checked;
+    const splitOptions = document.getElementById('split-options');
+
+    if (isShared) {
+        splitOptions.classList.remove('hidden');
+    } else {
+        splitOptions.classList.add('hidden');
+    }
+}
+
+function changeSplitType() {
+    const splitType = document.querySelector('input[name="split_type"]:checked').value;
+
+    // Hide all split input types
+    document.querySelectorAll('.split-input').forEach(el => el.classList.add('hidden'));
+
+    // Show the selected type
+    document.querySelectorAll(`.${splitType}-split`).forEach(el => el.classList.remove('hidden'));
+
+    updateSplitOptions();
+}
+
+function updateSplitOptions() {
+    const splitType = document.querySelector('input[name="split_type"]:checked').value;
+    const checkedMembers = document.querySelectorAll('.member-checkbox:checked');
+
+    if (splitType === 'equal') {
+        calculateSplits();
+    }
+}
+
+function calculateSplits() {
+    const totalAmount = parseFloat(document.getElementById('total_amount').value || 0);
+    const splitType = document.querySelector('input[name="split_type"]:checked').value;
+
+    if (totalAmount <= 0) return;
+
+    let totalAllocated = 0;
+
+    if (splitType === 'equal') {
+        const checkedMembers = document.querySelectorAll('.member-checkbox:checked');
+        if (checkedMembers.length > 0) {
+            const amountPerMember = totalAmount / checkedMembers.length;
+            checkedMembers.forEach(checkbox => {
+                const memberId = checkbox.value;
+                const amountDisplay = document.querySelector(`[data-member-id="${memberId}"] .equal-split .amount-display`);
+                if (amountDisplay) {
+                    amountDisplay.textContent = `$${amountPerMember.toFixed(2)}`;
+                }
+            });
+            totalAllocated = totalAmount;
+        }
+    } else if (splitType === 'percentage') {
+        document.querySelectorAll('input[name^="percentage_"]').forEach(input => {
+            const percentage = parseFloat(input.value || 0);
+            const amount = (totalAmount * percentage / 100);
+            const memberId = input.name.split('_')[1];
+            const amountDisplay = document.querySelector(`[data-member-id="${memberId}"] .percentage-split .amount-display`);
+            if (amountDisplay) {
+                amountDisplay.textContent = `= $${amount.toFixed(2)}`;
+            }
+            if (percentage > 0) {
+                totalAllocated += amount;
+            }
+        });
+    } else if (splitType === 'custom') {
+        document.querySelectorAll('input[name^="amount_"]').forEach(input => {
+            const amount = parseFloat(input.value || 0);
+            totalAllocated += amount;
+        });
+    }
+
+    // Update summary
+    const summary = document.getElementById('split-summary');
+    if (document.getElementById('is_shared').checked) {
+        summary.classList.remove('hidden');
+        document.getElementById('total-allocated').textContent = `$${totalAllocated.toFixed(2)}`;
+        document.getElementById('remaining-amount').textContent = `$${(totalAmount - totalAllocated).toFixed(2)}`;
+
+        // Color code remaining amount
+        const remainingEl = document.getElementById('remaining-amount');
+        const remaining = totalAmount - totalAllocated;
+        if (Math.abs(remaining) < 0.01) {
+            remainingEl.className = 'font-medium text-green-600';
+        } else if (remaining > 0) {
+            remainingEl.className = 'font-medium text-yellow-600';
+        } else {
+            remainingEl.className = 'font-medium text-red-600';
+        }
+    } else {
+        summary.classList.add('hidden');
+    }
+}
+</script>
+{% endblock %}

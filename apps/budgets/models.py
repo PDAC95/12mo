@@ -194,6 +194,45 @@ class Budget(models.Model):
         validators=[MinValueValidator(Decimal('0.01'))],
         help_text="Budgeted amount for this category"
     )
+
+    # Estimation vs Real tracking
+    is_estimated = models.BooleanField(
+        default=False,
+        help_text="Whether this is an estimated amount (like utilities) vs fixed (like rent)"
+    )
+
+    # For recurring expenses
+    is_recurring = models.BooleanField(
+        default=False,
+        help_text="Whether this is a recurring expense"
+    )
+
+    recurrence_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('monthly', 'Monthly'),
+            ('weekly', 'Weekly'),
+            ('biweekly', 'Bi-weekly'),
+            ('quarterly', 'Quarterly'),
+            ('yearly', 'Yearly'),
+        ],
+        blank=True,
+        null=True,
+        help_text="How often this expense recurs"
+    )
+
+    expected_day = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(31)],
+        help_text="Day of month when this expense is expected (1-31)"
+    )
+
+    next_due_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Next expected date for this recurring expense"
+    )
     month_period = models.CharField(
         max_length=7,
         help_text="Budget month in YYYY-MM format"
@@ -274,9 +313,7 @@ class Budget(models.Model):
     @property
     def total_spent(self):
         """Calculate total spent in this category for this month"""
-        # This will be implemented when we create the Expense model
-        # For now, return 0
-        return Decimal('0.00')
+        return self.get_real_spending_current_month()
 
     @property
     def remaining_amount(self):
@@ -394,6 +431,197 @@ class Budget(models.Model):
         except ValueError:
             raise ValidationError('Invalid month format. Use YYYY-MM format.')
 
+    def get_average_real_spending(self, months_back=6):
+        """Calculate average real spending for this budget item over last X months"""
+        try:
+            year, month = map(int, self.month_period.split('-'))
+            real_expenses = ActualExpense.objects.filter(
+                budget_item=self,
+                date_paid__year__gte=year - 1 if month <= months_back else year,
+                date_paid__month__lte=month
+            )
+
+            if real_expenses.exists():
+                total = sum(expense.actual_amount for expense in real_expenses)
+                return total / real_expenses.count()
+            return self.amount
+        except (ValueError, ZeroDivisionError):
+            return self.amount
+
+    def get_spending_variance(self):
+        """Compare estimated vs real spending, return percentage difference"""
+        real_total = self.get_real_spending_current_month()
+        if self.amount == 0:
+            return 0
+
+        variance = ((real_total - self.amount) / self.amount) * 100
+        return round(variance, 1)
+
+    def get_real_spending_current_month(self):
+        """Get actual spending for current month"""
+        real_expenses = ActualExpense.objects.filter(
+            budget_item=self,
+            month_period=self.month_period
+        )
+        return sum(expense.actual_amount for expense in real_expenses)
+
+    def update_next_due_date(self):
+        """Calculate and update next due date for recurring expenses"""
+        if not self.is_recurring or not self.expected_day:
+            return
+
+        from datetime import datetime, timedelta
+        import calendar
+
+        try:
+            year, month = map(int, self.month_period.split('-'))
+
+            if self.recurrence_type == 'monthly':
+                # Next month, same day
+                if month == 12:
+                    next_year, next_month = year + 1, 1
+                else:
+                    next_year, next_month = year, month + 1
+
+                # Handle month end dates (e.g., Jan 31 -> Feb 28)
+                max_day = calendar.monthrange(next_year, next_month)[1]
+                next_day = min(self.expected_day, max_day)
+
+                self.next_due_date = datetime(next_year, next_month, next_day).date()
+
+            # Add other recurrence types as needed
+
+        except (ValueError, TypeError):
+            pass
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        if self.is_recurring:
+            self.update_next_due_date()
+        super().save(*args, **kwargs)
+
+
+class ActualExpense(models.Model):
+    """Real expenses associated with budget items"""
+
+    budget_item = models.ForeignKey(
+        Budget,
+        on_delete=models.CASCADE,
+        related_name='actual_expenses',
+        help_text="Budget item this expense belongs to"
+    )
+    actual_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        help_text="Actual amount spent"
+    )
+    date_paid = models.DateField(
+        help_text="Date when this expense was paid"
+    )
+    month_period = models.CharField(
+        max_length=7,
+        help_text="Month this expense belongs to (YYYY-MM format)"
+    )
+    paid_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        help_text="User who paid this expense"
+    )
+    description = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Optional description of the expense"
+    )
+    receipt_url = models.URLField(
+        blank=True,
+        help_text="URL to receipt image (Cloudinary, etc.)"
+    )
+
+    # Split expenses support
+    is_shared = models.BooleanField(
+        default=False,
+        help_text="Whether this expense is shared among multiple users"
+    )
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'actual_expenses'
+        ordering = ['-date_paid']
+        verbose_name = 'Actual Expense'
+        verbose_name_plural = 'Actual Expenses'
+
+    def __str__(self):
+        return f"{self.budget_item.category.name}: ${self.actual_amount} on {self.date_paid}"
+
+    def clean(self):
+        """Custom validation"""
+        # Auto-set month_period from date_paid
+        if self.date_paid:
+            self.month_period = self.date_paid.strftime('%Y-%m')
+
+        # Validate paid_by is member of space
+        if self.paid_by and self.budget_item and self.budget_item.space:
+            from spaces.models import SpaceMember
+            if not SpaceMember.objects.filter(
+                space=self.budget_item.space,
+                user=self.paid_by,
+                is_active=True
+            ).exists():
+                raise ValidationError({'paid_by': 'User must be a member of the space'})
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class ExpenseSplit(models.Model):
+    """For handling split expenses between multiple users"""
+
+    actual_expense = models.ForeignKey(
+        ActualExpense,
+        on_delete=models.CASCADE,
+        related_name='splits'
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        help_text="User responsible for this portion"
+    )
+    percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01')), MaxValueValidator(Decimal('100.00'))],
+        help_text="Percentage of expense this user is responsible for"
+    )
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Calculated amount for this user"
+    )
+
+    class Meta:
+        db_table = 'expense_splits'
+        unique_together = [['actual_expense', 'user']]
+        verbose_name = 'Expense Split'
+        verbose_name_plural = 'Expense Splits'
+
+    def __str__(self):
+        return f"{self.user.username}: {self.percentage}% (${self.amount})"
+
+    def clean(self):
+        """Custom validation"""
+        if self.actual_expense and self.percentage:
+            # Calculate amount based on percentage
+            self.amount = (self.actual_expense.actual_amount * self.percentage / 100).quantize(Decimal('0.01'))
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+# Import approval workflow models
+from .approval_models import BudgetChangeRequest, BudgetChangeVote, ChangeHistoryLog

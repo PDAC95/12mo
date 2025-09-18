@@ -21,7 +21,9 @@
       "Read(//c/**)",
       "Bash(findstr:*)",
       "Bash(dir:*)",
-      "Bash(copy:*)"
+      "Bash(copy:*)",
+      "Bash(del test_budget.py)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
