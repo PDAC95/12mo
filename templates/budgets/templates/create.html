@@ -1,0 +1,305 @@
+{% extends 'authenticated/base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Create Template - {{ current_space.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-20">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">{{ current_space.name }}</h1>
+                    <p class="mt-1 text-lg text-gray-600">Create Custom Template</p>
+                </div>
+                <a href="{% url 'budgets:template_list' %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wallai-green">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back to Templates
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Info Card -->
+        <div class="bg-wallai-green bg-opacity-10 border border-wallai-green rounded-lg p-6 mb-8">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-wallai-green" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-wallai-green">Creating a Custom Template</h3>
+                    <div class="mt-2 text-sm text-green-700">
+                        <p>Custom templates help you create budgets faster by pre-configuring common settings for {{ current_space.name }}. You can:</p>
+                        <ul class="list-disc ml-5 mt-1 space-y-1">
+                            <li>Set default amounts and categories</li>
+                            <li>Configure timing preferences (fixed dates, ranges, or flexible)</li>
+                            <li>Set up recurring patterns</li>
+                            <li>Add helpful descriptions for team members</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Form -->
+        <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Template Configuration</h2>
+            </div>
+            <form method="post" class="p-6 space-y-6">
+                {% csrf_token %}
+
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Template Name <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.name.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.template_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Template Type <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.template_type }}
+                            {% if form.template_type.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.template_type.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Description
+                    </label>
+                    <div class="mt-1">
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="mt-1">
+                                {% for error in form.description.errors %}
+                                    <p class="text-sm text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <p class="mt-1 text-sm text-gray-500">Help your team understand when to use this template</p>
+                </div>
+
+                <!-- Default Values -->
+                <div class="border rounded-lg p-4 bg-blue-50">
+                    <h3 class="text-sm font-medium text-blue-900 mb-4">💰 Default Budget Settings</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.default_category.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Default Category <span class="text-red-500">*</span>
+                            </label>
+                            <div class="mt-1">
+                                {{ form.default_category }}
+                                {% if form.default_category.errors %}
+                                    <div class="mt-1">
+                                        {% for error in form.default_category.errors %}
+                                            <p class="text-sm text-red-600">{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="{{ form.suggested_amount.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Suggested Amount
+                            </label>
+                            <div class="mt-1 relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500">$</span>
+                                </div>
+                                {{ form.suggested_amount }}
+                                {% if form.suggested_amount.errors %}
+                                    <div class="mt-1">
+                                        {% for error in form.suggested_amount.errors %}
+                                            <p class="text-sm text-red-600">{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">Leave empty if amount varies</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timing Defaults -->
+                <div class="border rounded-lg p-4 bg-purple-50">
+                    <h3 class="text-sm font-medium text-purple-900 mb-4">⏰ Default Timing Settings</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.default_timing_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Default Timing Type <span class="text-red-500">*</span>
+                            </label>
+                            <div class="mt-1">
+                                {{ form.default_timing_type }}
+                                {% if form.default_timing_type.errors %}
+                                    <div class="mt-1">
+                                        {% for error in form.default_timing_type.errors %}
+                                            <p class="text-sm text-red-600">{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="{{ form.default_time_of_day.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Preferred Time of Day
+                            </label>
+                            <div class="mt-1">
+                                {{ form.default_time_of_day }}
+                                {% if form.default_time_of_day.errors %}
+                                    <div class="mt-1">
+                                        {% for error in form.default_time_of_day.errors %}
+                                            <p class="text-sm text-red-600">{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label for="{{ form.default_reminder_days.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Default Reminder Days
+                        </label>
+                        <div class="mt-1">
+                            {{ form.default_reminder_days }}
+                            {% if form.default_reminder_days.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.default_reminder_days.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">How many days before the due date to send reminders</p>
+                    </div>
+                </div>
+
+                <!-- Recurrence Defaults -->
+                <div class="border rounded-lg p-4 bg-green-50">
+                    <h3 class="text-sm font-medium text-green-900 mb-4">🔄 Default Recurrence Settings</h3>
+
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.default_is_recurring }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.default_is_recurring.id_for_label }}" class="text-sm font-medium text-green-900">
+                                Make budgets created from this template recurring by default
+                            </label>
+                            <p class="text-xs text-green-700">Users can still change this when creating the budget</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label for="{{ form.default_recurrence_pattern.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Default Recurrence Pattern
+                        </label>
+                        <div class="mt-1">
+                            {{ form.default_recurrence_pattern }}
+                            {% if form.default_recurrence_pattern.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.default_recurrence_pattern.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">How this expense should repeat month to month</p>
+                    </div>
+                </div>
+
+                <!-- Form Errors -->
+                {% if form.non_field_errors %}
+                    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
+                                <div class="mt-2 text-sm text-red-700">
+                                    <ul class="list-disc list-inside space-y-1">
+                                        {% for error in form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Submit Buttons -->
+                <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                    <a href="{% url 'budgets:template_list' %}"
+                       class="px-6 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wallai-green">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-wallai-green to-teal-400 hover:from-wallai-green-dark hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wallai-green">
+                        Create Template
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Usage Tips -->
+        <div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-gray-800">Template Tips</h3>
+                    <div class="mt-2 text-sm text-gray-600">
+                        <ul class="list-disc list-inside space-y-1">
+                            <li><strong>Name clearly:</strong> Use descriptive names like "Weekly Team Lunch" or "Monthly Office Supplies"</li>
+                            <li><strong>Set realistic defaults:</strong> Base suggested amounts on your actual spending patterns</li>
+                            <li><strong>Choose appropriate timing:</strong> Use fixed dates for bills, ranges for flexible purchases</li>
+                            <li><strong>Consider your team:</strong> Other space members will use this template too</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

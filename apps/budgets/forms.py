@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from decimal import Decimal
-from .models import Budget, BudgetCategory
+from .models import Budget, BudgetCategory, BudgetTemplate
 from spaces.models import Space, SpaceMember
 
 User = get_user_model()
@@ -363,3 +363,281 @@ class BudgetCopyForm(forms.Form):
             raise ValidationError('Source and target months must be different.')
 
         return cleaned_data
+
+
+class SmartBudgetCreationForm(forms.ModelForm):
+    """Enhanced budget creation form with template selection and timing options"""
+
+    # Template selection
+    use_template = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'rounded border-gray-300 text-wallai-green focus:ring-wallai-green',
+            'x-model': 'useTemplate'
+        }),
+        label="Use a template to speed up creation"
+    )
+
+    template = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'wallai-input',
+            'x-show': 'useTemplate',
+            '@change': 'loadTemplate($event.target.value)'
+        }),
+        empty_label="Select a template..."
+    )
+
+    class Meta:
+        model = Budget
+        fields = [
+            'category', 'amount', 'timing_type', 'due_date', 'range_start',
+            'range_end', 'range_description', 'reminder_days_before',
+            'preferred_time_of_day', 'is_recurring', 'recurrence_pattern',
+            'assigned_to', 'notes'
+        ]
+        widgets = {
+            'category': forms.Select(attrs={
+                'class': 'wallai-input',
+                'x-model': 'selectedCategory'
+            }),
+            'amount': forms.NumberInput(attrs={
+                'class': 'wallai-input',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0.01',
+                'x-model': 'amount'
+            }),
+            'timing_type': forms.Select(attrs={
+                'class': 'wallai-input',
+                'x-model': 'timingType',
+                '@change': 'updateTimingFields()'
+            }),
+            'due_date': forms.DateInput(attrs={
+                'class': 'wallai-input',
+                'type': 'date',
+                'x-show': 'timingType === "fixed_date"',
+                'x-model': 'dueDate'
+            }),
+            'range_start': forms.DateInput(attrs={
+                'class': 'wallai-input',
+                'type': 'date',
+                'x-show': 'timingType === "date_range"',
+                'x-model': 'rangeStart'
+            }),
+            'range_end': forms.DateInput(attrs={
+                'class': 'wallai-input',
+                'type': 'date',
+                'x-show': 'timingType === "date_range"',
+                'x-model': 'rangeEnd'
+            }),
+            'range_description': forms.TextInput(attrs={
+                'class': 'wallai-input',
+                'placeholder': 'e.g., First week of month, Weekends only',
+                'x-show': 'timingType === "date_range"',
+                'x-model': 'rangeDescription'
+            }),
+            'reminder_days_before': forms.NumberInput(attrs={
+                'class': 'wallai-input',
+                'min': '0',
+                'max': '30',
+                'x-model': 'reminderDays'
+            }),
+            'preferred_time_of_day': forms.Select(attrs={
+                'class': 'wallai-input',
+                'x-model': 'preferredTime'
+            }),
+            'is_recurring': forms.CheckboxInput(attrs={
+                'class': 'rounded border-gray-300 text-wallai-green focus:ring-wallai-green',
+                'x-model': 'isRecurring',
+                '@change': 'updateRecurrenceFields()'
+            }),
+            'recurrence_pattern': forms.Select(attrs={
+                'class': 'wallai-input',
+                'x-show': 'isRecurring',
+                'x-model': 'recurrencePattern'
+            }),
+            'assigned_to': forms.Select(attrs={
+                'class': 'wallai-input',
+                'x-model': 'assignedTo'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'wallai-input',
+                'placeholder': 'Optional notes about this budget...',
+                'rows': 3,
+                'maxlength': '500',
+                'x-model': 'notes'
+            })
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.space = kwargs.pop('space', None)
+        self.user = kwargs.pop('user', None)
+        self.month_period = kwargs.pop('month_period', None)
+        super().__init__(*args, **kwargs)
+
+        # Filter categories for the space
+        if self.space:
+            from django.db import models
+            from .models import BudgetTemplate
+
+            # Include system defaults and custom categories for this space
+            categories = BudgetCategory.objects.filter(
+                models.Q(is_system_default=True) | models.Q(space=self.space),
+                is_active=True
+            ).order_by('is_system_default', 'name')
+            self.fields['category'].queryset = categories
+
+            # Get available templates
+            templates = BudgetTemplate.objects.filter(
+                models.Q(is_system_default=True) | models.Q(space=self.space),
+                is_active=True
+            ).order_by('template_type', 'name')
+            self.fields['template'].queryset = templates
+
+            # Filter assigned_to to space members
+            space_members = User.objects.filter(
+                spacemember__space=self.space,
+                spacemember__is_active=True
+            ).distinct()
+            self.fields['assigned_to'].queryset = space_members
+            self.fields['assigned_to'].empty_label = "Not assigned"
+
+    def clean(self):
+        """Enhanced validation for timing fields"""
+        cleaned_data = super().clean()
+        timing_type = cleaned_data.get('timing_type')
+
+        # Timing-specific validation
+        if timing_type == 'fixed_date':
+            if not cleaned_data.get('due_date'):
+                raise ValidationError({'due_date': 'Due date is required for fixed date expenses'})
+        elif timing_type == 'date_range':
+            range_start = cleaned_data.get('range_start')
+            range_end = cleaned_data.get('range_end')
+            if not range_start or not range_end:
+                raise ValidationError({'range_start': 'Both start and end dates are required for date range expenses'})
+            if range_start >= range_end:
+                raise ValidationError({'range_start': 'Start date must be before end date'})
+
+        # Check for duplicate budget in same space/month/category
+        category = cleaned_data.get('category')
+        if category and self.space and self.month_period:
+            existing = Budget.objects.filter(
+                space=self.space,
+                category=category,
+                month_period=self.month_period,
+                is_active=True
+            ).exclude(pk=self.instance.pk if self.instance else None)
+
+            if existing.exists():
+                raise ValidationError('A budget for this category already exists for this month.')
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        """Save budget with space, user, and month information"""
+        budget = super().save(commit=False)
+        if self.space:
+            budget.space = self.space
+        if self.user:
+            budget.created_by = self.user
+        if self.month_period:
+            budget.month_period = self.month_period
+
+        if commit:
+            budget.save()
+
+        # If a template was used, increment its usage count
+        template_id = self.data.get('template')
+        if template_id and self.cleaned_data.get('use_template'):
+            try:
+                from .models import BudgetTemplate
+                template = BudgetTemplate.objects.get(id=template_id)
+                template.increment_usage()
+            except BudgetTemplate.DoesNotExist:
+                pass
+
+        return budget
+
+
+class BudgetTemplateForm(forms.ModelForm):
+    """Form for creating and editing budget templates"""
+
+    class Meta:
+        model = BudgetTemplate
+        fields = [
+            'name', 'description', 'template_type', 'default_category',
+            'suggested_amount', 'default_timing_type', 'default_reminder_days',
+            'default_time_of_day', 'default_is_recurring', 'default_recurrence_pattern'
+        ]
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'wallai-input',
+                'placeholder': 'Template name (e.g., Monthly Rent)',
+                'maxlength': '100'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'wallai-input',
+                'placeholder': 'Description of when to use this template',
+                'rows': 3,
+                'maxlength': '300'
+            }),
+            'template_type': forms.Select(attrs={
+                'class': 'wallai-input'
+            }),
+            'default_category': forms.Select(attrs={
+                'class': 'wallai-input'
+            }),
+            'suggested_amount': forms.NumberInput(attrs={
+                'class': 'wallai-input',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0.01'
+            }),
+            'default_timing_type': forms.Select(attrs={
+                'class': 'wallai-input'
+            }),
+            'default_reminder_days': forms.NumberInput(attrs={
+                'class': 'wallai-input',
+                'min': '0',
+                'max': '30'
+            }),
+            'default_time_of_day': forms.Select(attrs={
+                'class': 'wallai-input'
+            }),
+            'default_is_recurring': forms.CheckboxInput(attrs={
+                'class': 'rounded border-gray-300 text-wallai-green focus:ring-wallai-green'
+            }),
+            'default_recurrence_pattern': forms.Select(attrs={
+                'class': 'wallai-input'
+            })
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.space = kwargs.pop('space', None)
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        # Filter categories for the space
+        if self.space:
+            from django.db import models
+            categories = BudgetCategory.objects.filter(
+                models.Q(is_system_default=True) | models.Q(space=self.space),
+                is_active=True
+            ).order_by('is_system_default', 'name')
+            self.fields['default_category'].queryset = categories
+
+    def save(self, commit=True):
+        """Save template with space and user information"""
+        template = super().save(commit=False)
+        if self.space:
+            template.space = self.space
+        if self.user:
+            template.created_by = self.user
+        template.template_type = 'custom'  # Mark as custom template
+
+        if commit:
+            template.save()
+        return template

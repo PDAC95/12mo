@@ -1,0 +1,140 @@
+{% extends 'authenticated/base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Delete Template - {{ current_space.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-20">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">{{ current_space.name }}</h1>
+                    <p class="mt-1 text-lg text-gray-600">Delete Template</p>
+                </div>
+                <a href="{% url 'budgets:template_list' %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wallai-green">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back to Templates
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Confirmation Card -->
+        <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.732 8.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h2 class="text-lg font-medium text-red-900">Confirm Template Deletion</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <!-- Template Details -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 class="font-medium text-gray-900 mb-2">{{ template.name }}</h3>
+                    <p class="text-sm text-gray-600 mb-3">{{ template.description }}</p>
+
+                    <div class="flex items-center space-x-4 text-sm">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            {{ template.get_template_type_display }}
+                        </span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            {{ template.get_default_timing_type_display }}
+                        </span>
+                        {% if template.suggested_amount %}
+                        <span class="text-gray-500">${{ template.suggested_amount }}</span>
+                        {% endif %}
+                    </div>
+
+                    {% if template.usage_count > 0 %}
+                    <div class="flex items-center mt-3 text-sm text-gray-500">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                        Used {{ template.usage_count }} time{{ template.usage_count|pluralize }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Warning Message -->
+                <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">This action cannot be undone</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc list-inside space-y-1">
+                                    <li>The template "{{ template.name }}" will be permanently deleted</li>
+                                    <li>It will no longer be available for creating new budgets</li>
+                                    <li>Existing budgets created with this template will not be affected</li>
+                                    {% if template.usage_count > 0 %}
+                                    <li>This template has been used {{ template.usage_count }} time{{ template.usage_count|pluralize }} by your team</li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confirmation Form -->
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="flex justify-end space-x-3">
+                        <a href="{% url 'budgets:template_edit' template.id %}"
+                           class="px-6 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                            Cancel
+                        </a>
+                        <button type="submit"
+                                class="px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            Delete Template
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Alternative Actions -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">Alternative Actions</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <p>Instead of deleting, you could:</p>
+                        <ul class="list-disc list-inside mt-1 space-y-1">
+                            <li><a href="{% url 'budgets:template_edit' template.id %}" class="underline font-medium">Edit the template</a> to update its settings</li>
+                            <li>Keep the template but rename it to indicate it's deprecated</li>
+                            <li>Use it as a starting point for creating a <a href="{% url 'budgets:template_create' %}" class="underline font-medium">new template</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

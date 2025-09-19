@@ -153,19 +153,22 @@
             <div class="bg-white shadow-lg rounded-xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <div class="flex justify-between items-center">
-                        <h2 class="text-lg font-medium text-gray-900">Budget Tracker</h2>
-                        <div class="flex space-x-2">
-                            <a href="{% url 'budgets:create' %}"
-                               class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                </svg>
-                                Add Budget Item
-                            </a>
-                            <a href="{% url 'budgets:bulk_edit' month_period=current_month %}"
-                               class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                Bulk Edit
-                            </a>
+                        <div>
+                            <h2 class="text-lg font-medium text-gray-900">Budget Tracker</h2>
+                            <p class="text-sm text-gray-500 mt-1">
+                                {{ current_budgets.count }} categories • Click any row to view details
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-500">Monthly Overview</div>
+                            <div class="text-lg font-semibold text-gray-900">
+                                {% widthratio total_spent total_budgeted 100 as spent_percentage %}
+                                {{ spent_percentage|floatformat:0 }}% spent
+                            </div>
+                            <div class="w-24 bg-gray-200 rounded-full h-2 mt-1">
+                                <div class="{% if spent_percentage > 90 %}bg-red-500{% elif spent_percentage > 75 %}bg-yellow-500{% else %}bg-green-500{% endif %} h-2 rounded-full"
+                                     style="width: {% if spent_percentage > 100 %}100{% else %}{{ spent_percentage }}{% endif %}%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -192,13 +195,15 @@
                                     Assigned
                                 </th>
                                 <th class="hidden md:table-cell px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actions
+                                    Details
                                 </th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             {% for budget in current_budgets %}
-                            <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location.href='{% url 'budgets:edit' budget.id %}'">
+                            <tr class="hover:bg-blue-50 cursor-pointer transition-colors duration-150"
+                                onclick="window.location.href='{% url 'budgets:edit' budget.id %}'"
+                                title="Click to view detailed budget information">
                                 <td class="pl-6 pr-2 md:px-6 py-4">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 w-8 h-8">
@@ -248,13 +253,15 @@
                                         <span class="text-gray-400">Unassigned</span>
                                     {% endif %}
                                 </td>
-                                <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                    <a href="{% url 'budgets:add_expense' budget.id %}"
-                                       class="text-green-600 hover:text-green-900">Add Expense</a>
+                                <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <a href="{% url 'budgets:edit' budget.id %}"
-                                       class="text-indigo-600 hover:text-indigo-900">Edit</a>
-                                    <a href="{% url 'budgets:delete' budget.id %}"
-                                       class="text-red-600 hover:text-red-900">Delete</a>
+                                       class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-xs font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        View Details
+                                    </a>
                                 </td>
                             </tr>
                             {% endfor %}

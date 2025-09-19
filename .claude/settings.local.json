@@ -23,7 +23,9 @@
       "Bash(dir:*)",
       "Bash(copy:*)",
       "Bash(del test_budget.py)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(tasklist)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

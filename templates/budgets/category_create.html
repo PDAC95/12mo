@@ -1,0 +1,227 @@
+{% extends 'authenticated/base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Create Category - {{ current_space.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-20">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">{{ current_space.name }}</h1>
+                    <p class="mt-1 text-lg text-gray-600">Create Custom Category</p>
+                </div>
+                <a href="{% url 'budgets:categories' %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wallai-green">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back to Categories
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Info Card -->
+        <div class="bg-wallai-green bg-opacity-10 border border-wallai-green rounded-lg p-6 mb-8">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-wallai-green" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-wallai-green">Creating a Custom Category</h3>
+                    <div class="mt-2 text-sm text-green-700">
+                        <p>Custom categories help organize your budgets for {{ current_space.name }}. You can:</p>
+                        <ul class="list-disc ml-5 mt-1 space-y-1">
+                            <li>Set whether it's a fixed or variable expense type</li>
+                            <li>Add an icon and color to help identify it quickly</li>
+                            <li>Write a description for other team members</li>
+                            <li>Use it in multiple budgets across different months</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Form -->
+        <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Category Information</h2>
+            </div>
+            <form method="post" class="p-6 space-y-6">
+                {% csrf_token %}
+
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Category Name <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.name.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">Choose a clear, descriptive name</p>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.category_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Category Type <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.category_type }}
+                            {% if form.category_type.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.category_type.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">Fixed: predictable amounts, Variable: amounts change</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Description
+                    </label>
+                    <div class="mt-1">
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="mt-1">
+                                {% for error in form.description.errors %}
+                                    <p class="text-sm text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <p class="mt-1 text-sm text-gray-500">Help your team understand when to use this category</p>
+                </div>
+
+                <!-- Visual Customization -->
+                <div class="border rounded-lg p-4 bg-blue-50">
+                    <h3 class="text-sm font-medium text-blue-900 mb-4">🎨 Visual Customization</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.icon.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Icon (Emoji)
+                            </label>
+                            <div class="mt-1">
+                                {{ form.icon }}
+                                {% if form.icon.errors %}
+                                    <div class="mt-1">
+                                        {% for error in form.icon.errors %}
+                                            <p class="text-sm text-red-600">{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">Optional emoji to represent this category</p>
+                        </div>
+
+                        <div>
+                            <label for="{{ form.color.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Color
+                            </label>
+                            <div class="mt-1">
+                                {{ form.color }}
+                                {% if form.color.errors %}
+                                    <div class="mt-1">
+                                        {% for error in form.color.errors %}
+                                            <p class="text-sm text-red-600">{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">Hex color code (e.g., #3B82F6)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Errors -->
+                {% if form.non_field_errors %}
+                    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
+                                <div class="mt-2 text-sm text-red-700">
+                                    <ul class="list-disc list-inside space-y-1">
+                                        {% for error in form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Submit Buttons -->
+                <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                    <a href="{% url 'budgets:categories' %}"
+                       class="px-6 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wallai-green">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-wallai-green to-teal-400 hover:from-wallai-green-dark hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wallai-green">
+                        Create Category
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Category Examples -->
+        <div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-gray-800">Category Examples</h3>
+                    <div class="mt-2 text-sm text-gray-600">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="font-medium">Fixed Categories:</p>
+                                <ul class="list-disc list-inside mt-1 space-y-1">
+                                    <li>🏠 Office Rent - Monthly office space</li>
+                                    <li>📱 Software Subscriptions - SaaS tools</li>
+                                    <li>🚗 Company Car Payment - Monthly payment</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="font-medium">Variable Categories:</p>
+                                <ul class="list-disc list-inside mt-1 space-y-1">
+                                    <li>🍕 Team Lunches - Varies by month</li>
+                                    <li>📊 Marketing Campaigns - Project-based</li>
+                                    <li>✈️ Business Travel - As needed</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

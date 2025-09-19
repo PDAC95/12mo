@@ -13,6 +13,7 @@ urlpatterns = [
     path('create-monthly/', views.create_monthly_budget, name='create_monthly'),
     path('create/', views.budget_create, name='create'),
     path('create-from-scratch/', views.budget_create_from_scratch, name='create_from_scratch'),
+    path('smart-create/', views.smart_create_budget, name='smart_create'),
     path('edit/<int:budget_id>/', views.budget_edit, name='edit'),
     path('delete/<int:budget_id>/', views.budget_delete, name='delete'),
     path('bulk-edit/<str:month_period>/', views.budget_bulk_edit, name='bulk_edit'),
@@ -20,10 +21,17 @@ urlpatterns = [
 
     # AJAX endpoints
     path('api/quick-update/<int:budget_id>/', views.budget_quick_update, name='quick_update'),
+    path('api/template/<int:template_id>/', views.template_data_api, name='template_data'),
 
     # Budget categories
     path('categories/', views.category_list, name='categories'),
     path('categories/create/', views.category_create, name='category_create'),
+
+    # Budget templates
+    path('templates/', views.template_list, name='template_list'),
+    path('templates/create/', views.template_create, name='template_create'),
+    path('templates/<int:template_id>/edit/', views.template_edit, name='template_edit'),
+    path('templates/<int:template_id>/delete/', views.template_delete, name='template_delete'),
 
     # Expenses
     path('add-expense/<int:budget_id>/', views_expenses.add_expense, name='add_expense'),

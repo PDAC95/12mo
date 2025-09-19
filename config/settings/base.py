@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django_extensions',
     
     # Local apps
+    'config',  # Config app for management commands
     'public',  # Landing and public pages
     'authentication',
     'spaces',

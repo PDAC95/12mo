@@ -1,0 +1,509 @@
+{% extends 'authenticated/base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Smart Budget Creation - {{ current_space.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-20"
+     x-data="smartBudgetCreator()"
+     x-init="init()">
+
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">{{ current_space.name }}</h1>
+                    <p class="mt-1 text-lg text-gray-600">Smart Budget Creation</p>
+                </div>
+                <a href="{% url 'budgets:home' %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wallai-green">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back to Budgets
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Smart Templates Section -->
+        <div class="bg-white shadow-lg rounded-xl overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-wallai-green to-teal-400">
+                <h2 class="text-lg font-medium text-white flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Quick Templates
+                </h2>
+                <p class="text-white text-sm mt-1">Get started faster with pre-configured templates</p>
+            </div>
+
+            <!-- Template Grid -->
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    {% for template in templates %}
+                    <div class="bg-gray-50 rounded-lg p-4 border-2 border-transparent hover:border-wallai-green transition-colors cursor-pointer"
+                         @click="selectTemplate({{ template.id }})"
+                         :class="{'border-wallai-green bg-wallai-green bg-opacity-10': selectedTemplateId === {{ template.id }}}">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <h3 class="font-medium text-gray-900">{{ template.name }}</h3>
+                                <p class="text-sm text-gray-600 mt-1">{{ template.description }}</p>
+                                <div class="flex items-center mt-2">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {{ template.get_template_type_display }}
+                                    </span>
+                                    {% if template.suggested_amount %}
+                                    <span class="ml-2 text-sm text-gray-500">${{ template.suggested_amount }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if template.usage_count > 0 %}
+                                <div class="flex items-center mt-2 text-xs text-gray-500">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                    </svg>
+                                    Used {{ template.usage_count }} time{{ template.usage_count|pluralize }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div x-show="selectedTemplateId === {{ template.id }}" class="ml-2">
+                                <svg class="w-5 h-5 text-wallai-green" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-full text-center py-8">
+                        <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p class="text-gray-500">No templates available yet.</p>
+                        <a href="{% url 'budgets:template_create' %}" class="text-wallai-green hover:text-wallai-green-dark font-medium">Create your first template</a>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Load Template Button -->
+                <div x-show="selectedTemplateId" class="text-center">
+                    <button type="button"
+                            @click="loadSelectedTemplate()"
+                            class="inline-flex items-center px-4 py-2 bg-wallai-green text-white text-sm font-medium rounded-md hover:bg-wallai-green-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wallai-green">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Load Template
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Creation Form -->
+        <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Budget Details</h2>
+                <p class="text-sm text-gray-600 mt-1">Configure your budget with smart timing options</p>
+            </div>
+
+            <form method="post" class="p-6 space-y-6">
+                {% csrf_token %}
+
+                <!-- Category and Amount -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.category.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Category
+                        </label>
+                        <div class="mt-1">
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.category.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Budget Amount
+                        </label>
+                        <div class="mt-1 relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500">$</span>
+                            </div>
+                            {{ form.amount }}
+                            {% if form.amount.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.amount.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timing Configuration -->
+                <div class="border rounded-lg p-4 bg-blue-50">
+                    <h3 class="text-sm font-medium text-blue-900 mb-4">⏰ Smart Timing Configuration</h3>
+
+                    <div class="space-y-4">
+                        <!-- Timing Type -->
+                        <div>
+                            <label for="{{ form.timing_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                When do you plan to spend this?
+                            </label>
+                            <div class="mt-1">
+                                {{ form.timing_type }}
+                                {% if form.timing_type.errors %}
+                                    <div class="mt-1">
+                                        {% for error in form.timing_type.errors %}
+                                            <p class="text-sm text-red-600">{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Fixed Date Fields -->
+                        <div x-show="timingType === 'fixed_date'" class="space-y-4">
+                            <div>
+                                <label for="{{ form.due_date.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                    Due Date
+                                </label>
+                                <div class="mt-1">
+                                    {{ form.due_date }}
+                                    {% if form.due_date.errors %}
+                                        <div class="mt-1">
+                                            {% for error in form.due_date.errors %}
+                                                <p class="text-sm text-red-600">{{ error }}</p>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Date Range Fields -->
+                        <div x-show="timingType === 'date_range'" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="{{ form.range_start.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                        Start Date
+                                    </label>
+                                    <div class="mt-1">
+                                        {{ form.range_start }}
+                                        {% if form.range_start.errors %}
+                                            <div class="mt-1">
+                                                {% for error in form.range_start.errors %}
+                                                    <p class="text-sm text-red-600">{{ error }}</p>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="{{ form.range_end.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                        End Date
+                                    </label>
+                                    <div class="mt-1">
+                                        {{ form.range_end }}
+                                        {% if form.range_end.errors %}
+                                            <div class="mt-1">
+                                                {% for error in form.range_end.errors %}
+                                                    <p class="text-sm text-red-600">{{ error }}</p>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="{{ form.range_description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                    Description
+                                </label>
+                                <div class="mt-1">
+                                    {{ form.range_description }}
+                                    {% if form.range_description.errors %}
+                                        <div class="mt-1">
+                                            {% for error in form.range_description.errors %}
+                                                <p class="text-sm text-red-600">{{ error }}</p>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reminders and Preferences -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.reminder_days_before.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Reminder (days before)
+                        </label>
+                        <div class="mt-1">
+                            {{ form.reminder_days_before }}
+                            {% if form.reminder_days_before.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.reminder_days_before.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.preferred_time_of_day.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Preferred Time
+                        </label>
+                        <div class="mt-1">
+                            {{ form.preferred_time_of_day }}
+                            {% if form.preferred_time_of_day.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.preferred_time_of_day.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recurring Options -->
+                <div class="border rounded-lg p-4 bg-green-50">
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.is_recurring }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.is_recurring.id_for_label }}" class="text-sm font-medium text-green-900">
+                                🔄 Make this a recurring budget
+                            </label>
+                            <p class="text-xs text-green-700">Automatically create this budget every month</p>
+                        </div>
+                    </div>
+
+                    <div x-show="isRecurring" class="mt-4">
+                        <label for="{{ form.recurrence_pattern.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Recurrence Pattern
+                        </label>
+                        <div class="mt-1">
+                            {{ form.recurrence_pattern }}
+                            {% if form.recurrence_pattern.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.recurrence_pattern.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assignment and Notes -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.assigned_to.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Assign to
+                        </label>
+                        <div class="mt-1">
+                            {{ form.assigned_to }}
+                            {% if form.assigned_to.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.assigned_to.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Notes
+                        </label>
+                        <div class="mt-1">
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <div class="mt-1">
+                                    {% for error in form.notes.errors %}
+                                        <p class="text-sm text-red-600">{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Errors -->
+                {% if form.non_field_errors %}
+                    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
+                                <div class="mt-2 text-sm text-red-700">
+                                    <ul class="list-disc list-inside space-y-1">
+                                        {% for error in form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Submit Buttons -->
+                <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                    <a href="{% url 'budgets:home' %}"
+                       class="px-6 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wallai-green">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-wallai-green to-teal-400 hover:from-wallai-green-dark hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wallai-green">
+                        Create Smart Budget
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Manage Templates</h3>
+                <p class="text-sm text-gray-600 mb-4">Create and manage your custom budget templates.</p>
+                <a href="{% url 'budgets:template_list' %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Templates Library
+                </a>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Manual Creation</h3>
+                <p class="text-sm text-gray-600 mb-4">Create a budget without using templates.</p>
+                <a href="{% url 'budgets:create_from_scratch' %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Create from Scratch
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function smartBudgetCreator() {
+    return {
+        selectedTemplateId: null,
+        useTemplate: false,
+        timingType: 'flexible',
+        isRecurring: false,
+
+        // Form data models
+        selectedCategory: '',
+        amount: '',
+        dueDate: '',
+        rangeStart: '',
+        rangeEnd: '',
+        rangeDescription: '',
+        reminderDays: 3,
+        preferredTime: 'anytime',
+        recurrencePattern: '',
+        assignedTo: '',
+        notes: '',
+
+        init() {
+            // Initialize form state
+            this.updateTimingFields();
+            this.updateRecurrenceFields();
+        },
+
+        selectTemplate(templateId) {
+            this.selectedTemplateId = templateId;
+        },
+
+        async loadSelectedTemplate() {
+            if (!this.selectedTemplateId) return;
+
+            try {
+                const response = await fetch(`/budgets/api/template/${this.selectedTemplateId}/`);
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error loading template: ' + data.error);
+                    return;
+                }
+
+                // Populate form with template data
+                this.selectedCategory = data.category_id;
+                this.amount = data.suggested_amount;
+                this.timingType = data.timing_type;
+                this.reminderDays = data.reminder_days;
+                this.preferredTime = data.time_of_day;
+                this.isRecurring = data.is_recurring;
+                this.recurrencePattern = data.recurrence_pattern;
+
+                // Update form fields
+                document.getElementById('id_category').value = data.category_id;
+                document.getElementById('id_amount').value = data.suggested_amount;
+                document.getElementById('id_timing_type').value = data.timing_type;
+                document.getElementById('id_reminder_days_before').value = data.reminder_days;
+                document.getElementById('id_preferred_time_of_day').value = data.time_of_day;
+                document.getElementById('id_is_recurring').checked = data.is_recurring;
+                if (data.is_recurring && data.recurrence_pattern) {
+                    document.getElementById('id_recurrence_pattern').value = data.recurrence_pattern;
+                }
+
+                this.updateTimingFields();
+                this.updateRecurrenceFields();
+
+                // Show success message
+                this.showNotification('Template loaded successfully!', 'success');
+
+            } catch (error) {
+                console.error('Error loading template:', error);
+                this.showNotification('Error loading template', 'error');
+            }
+        },
+
+        updateTimingFields() {
+            // This method is called when timing type changes
+            console.log('Timing type changed to:', this.timingType);
+        },
+
+        updateRecurrenceFields() {
+            // This method is called when recurring checkbox changes
+            console.log('Recurring changed to:', this.isRecurring);
+        },
+
+        showNotification(message, type = 'info') {
+            // Simple notification system
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg ${
+                type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
+                type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+                'bg-blue-100 text-blue-800 border border-blue-200'
+            }`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    }
+}
+</script>
+{% endblock %}

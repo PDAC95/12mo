@@ -195,6 +195,85 @@ class Budget(models.Model):
         help_text="Budgeted amount for this category"
     )
 
+    # TIMING SYSTEM - New fields for smart budget timing
+    timing_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('fixed_date', 'Fixed Date'),      # Rent - specific due date
+            ('date_range', 'Date Range'),      # Groceries - within a week
+            ('flexible', 'Flexible'),          # Gas - anytime during month
+        ],
+        default='flexible',
+        help_text="When this expense should be paid during the month"
+    )
+
+    # For fixed date expenses (rent, bills)
+    due_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Exact due date for fixed date expenses"
+    )
+
+    # For date range expenses (groceries, entertainment)
+    range_start = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Start date for date range expenses"
+    )
+    range_end = models.DateField(
+        null=True,
+        blank=True,
+        help_text="End date for date range expenses"
+    )
+    range_description = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Human-readable description of the range (e.g., 'First week', 'Weekends')"
+    )
+
+    # Smart reminders and preferences
+    reminder_days_before = models.IntegerField(
+        default=3,
+        help_text="How many days before due date/range to send reminder"
+    )
+    preferred_time_of_day = models.CharField(
+        max_length=20,
+        choices=[
+            ('morning', 'Morning'),
+            ('afternoon', 'Afternoon'),
+            ('evening', 'Evening'),
+            ('anytime', 'Anytime'),
+        ],
+        default='anytime',
+        help_text="Preferred time of day for this expense"
+    )
+
+    # Enhanced recurrence system
+    recurrence_pattern = models.CharField(
+        max_length=30,
+        choices=[
+            ('monthly_same_date', 'Same date each month'),      # Rent - always 1st
+            ('monthly_same_range', 'Same range each month'),    # Groceries - always week 1
+            ('monthly_flexible', 'Flexible each month'),        # Gas - anytime
+            ('biweekly_same_day', 'Same day biweekly'),        # Paycheck - every other Friday
+        ],
+        blank=True,
+        null=True,
+        help_text="How this recurring expense should repeat"
+    )
+
+    # Behavior tracking for smart suggestions
+    actual_spend_dates = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Historical dates when this expense was actually paid (for pattern analysis)"
+    )
+    last_behavior_analysis = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When behavior analysis was last updated for this budget"
+    )
+
     # Estimation vs Real tracking
     is_estimated = models.BooleanField(
         default=False,
@@ -294,6 +373,39 @@ class Budget(models.Model):
         # Validate amount is positive
         if self.amount and self.amount <= 0:
             raise ValidationError({'amount': 'Budget amount must be greater than 0'})
+
+        # TIMING VALIDATION - Validate timing fields consistency
+        if self.timing_type == 'fixed_date':
+            if not self.due_date:
+                raise ValidationError({'due_date': 'Due date is required for fixed date expenses'})
+            # Clear range fields for fixed date
+            self.range_start = None
+            self.range_end = None
+            self.range_description = ''
+
+        elif self.timing_type == 'date_range':
+            if not self.range_start or not self.range_end:
+                raise ValidationError({'range_start': 'Both start and end dates are required for date range expenses'})
+            if self.range_start >= self.range_end:
+                raise ValidationError({'range_start': 'Start date must be before end date'})
+            # Clear due_date for range
+            self.due_date = None
+
+        elif self.timing_type == 'flexible':
+            # Clear all timing fields for flexible
+            self.due_date = None
+            self.range_start = None
+            self.range_end = None
+            self.range_description = ''
+
+        # Validate recurrence pattern matches timing type
+        if self.is_recurring and self.recurrence_pattern:
+            if self.timing_type == 'fixed_date' and self.recurrence_pattern not in ['monthly_same_date', 'biweekly_same_day']:
+                raise ValidationError({'recurrence_pattern': 'Fixed date expenses can only use date-based recurrence patterns'})
+            elif self.timing_type == 'date_range' and self.recurrence_pattern != 'monthly_same_range':
+                raise ValidationError({'recurrence_pattern': 'Date range expenses should use range-based recurrence pattern'})
+            elif self.timing_type == 'flexible' and self.recurrence_pattern != 'monthly_flexible':
+                raise ValidationError({'recurrence_pattern': 'Flexible expenses should use flexible recurrence pattern'})
 
     @property
     def is_current_month(self):
@@ -465,6 +577,83 @@ class Budget(models.Model):
         )
         return sum(expense.actual_amount for expense in real_expenses)
 
+    # TIMING SYSTEM METHODS
+    @property
+    def timing_status(self):
+        """Get current timing status of this budget"""
+        from datetime import datetime, date
+        today = date.today()
+
+        if self.timing_type == 'fixed_date' and self.due_date:
+            if self.due_date < today:
+                return 'overdue'
+            elif self.due_date == today:
+                return 'due_today'
+            elif (self.due_date - today).days <= self.reminder_days_before:
+                return 'due_soon'
+            else:
+                return 'upcoming'
+
+        elif self.timing_type == 'date_range' and self.range_start and self.range_end:
+            if today < self.range_start:
+                if (self.range_start - today).days <= self.reminder_days_before:
+                    return 'range_starting_soon'
+                return 'upcoming'
+            elif self.range_start <= today <= self.range_end:
+                return 'in_range'
+            else:
+                return 'range_ended'
+
+        return 'flexible'
+
+    @property
+    def timing_display(self):
+        """Get human-readable timing information"""
+        if self.timing_type == 'fixed_date' and self.due_date:
+            return f"Due: {self.due_date.strftime('%B %d')}"
+        elif self.timing_type == 'date_range' and self.range_start and self.range_end:
+            if self.range_description:
+                return f"{self.range_description} ({self.range_start.strftime('%m/%d')} - {self.range_end.strftime('%m/%d')})"
+            return f"{self.range_start.strftime('%m/%d')} - {self.range_end.strftime('%m/%d')}"
+        return "Flexible timing"
+
+    @property
+    def days_until_due(self):
+        """Get days until due date or range start"""
+        from datetime import date
+        today = date.today()
+
+        if self.timing_type == 'fixed_date' and self.due_date:
+            return (self.due_date - today).days
+        elif self.timing_type == 'date_range' and self.range_start:
+            if today < self.range_start:
+                return (self.range_start - today).days
+            elif today <= self.range_end:
+                return 0  # In range
+        return None
+
+    def record_actual_spend_date(self, spend_date):
+        """Record when this budget was actually spent for pattern analysis"""
+        if isinstance(spend_date, datetime):
+            spend_date = spend_date.date()
+
+        spend_date_str = spend_date.isoformat()
+        if spend_date_str not in self.actual_spend_dates:
+            self.actual_spend_dates.append(spend_date_str)
+            # Keep only last 12 entries for analysis
+            if len(self.actual_spend_dates) > 12:
+                self.actual_spend_dates = self.actual_spend_dates[-12:]
+            self.save(update_fields=['actual_spend_dates'])
+
+    def get_timing_variance_score(self):
+        """Calculate how well user follows their timing preferences (0-100 score)"""
+        if not self.actual_spend_dates or self.timing_type == 'flexible':
+            return 100  # No variance for flexible or no data
+
+        # Implementation will be enhanced with behavior analysis
+        # For now, return basic score
+        return 85
+
     def update_next_due_date(self):
         """Calculate and update next due date for recurring expenses"""
         if not self.is_recurring or not self.expected_day:
@@ -521,6 +710,7 @@ class ActualExpense(models.Model):
     )
     month_period = models.CharField(
         max_length=7,
+        blank=True,
         help_text="Month this expense belongs to (YYYY-MM format)"
     )
     paid_by = models.ForeignKey(
@@ -621,6 +811,354 @@ class ExpenseSplit(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class BudgetTemplate(models.Model):
+    """Predefined templates for quick budget creation"""
+
+    TEMPLATE_TYPES = [
+        ('bill', 'Monthly Bill'),           # Fixed date expenses like rent, utilities
+        ('grocery', 'Groceries'),           # Weekly/biweekly groceries
+        ('biweekly', 'Biweekly Expense'),   # Paycheck, biweekly bills
+        ('flexible', 'Flexible Expense'),   # Gas, coffee, misc
+        ('custom', 'Custom Template'),      # User-created templates
+    ]
+
+    name = models.CharField(
+        max_length=100,
+        help_text="Template name (e.g., 'Monthly Rent', 'Weekly Groceries')"
+    )
+    description = models.TextField(
+        max_length=300,
+        blank=True,
+        help_text="Description of when to use this template"
+    )
+    template_type = models.CharField(
+        max_length=20,
+        choices=TEMPLATE_TYPES,
+        help_text="Type of template for categorization"
+    )
+
+    # Default values for budget creation
+    default_category = models.ForeignKey(
+        BudgetCategory,
+        on_delete=models.CASCADE,
+        help_text="Default category for this template"
+    )
+    suggested_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Suggested default amount (optional)"
+    )
+
+    # Default timing configuration
+    default_timing_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('fixed_date', 'Fixed Date'),
+            ('date_range', 'Date Range'),
+            ('flexible', 'Flexible'),
+        ],
+        help_text="Default timing type for this template"
+    )
+    default_reminder_days = models.IntegerField(
+        default=3,
+        help_text="Default reminder days before due"
+    )
+    default_time_of_day = models.CharField(
+        max_length=20,
+        choices=[
+            ('morning', 'Morning'),
+            ('afternoon', 'Afternoon'),
+            ('evening', 'Evening'),
+            ('anytime', 'Anytime'),
+        ],
+        default='anytime',
+        help_text="Default preferred time of day"
+    )
+
+    # Recurrence defaults
+    default_is_recurring = models.BooleanField(
+        default=False,
+        help_text="Whether expenses from this template should be recurring by default"
+    )
+    default_recurrence_pattern = models.CharField(
+        max_length=30,
+        choices=[
+            ('monthly_same_date', 'Same date each month'),
+            ('monthly_same_range', 'Same range each month'),
+            ('monthly_flexible', 'Flexible each month'),
+            ('biweekly_same_day', 'Same day biweekly'),
+        ],
+        blank=True,
+        null=True,
+        help_text="Default recurrence pattern"
+    )
+
+    # Template configuration
+    is_system_default = models.BooleanField(
+        default=False,
+        help_text="Whether this is a system-provided template"
+    )
+    space = models.ForeignKey(
+        'spaces.Space',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="Space this template belongs to (null for system templates)"
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="User who created this template"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this template is active"
+    )
+
+    # Usage tracking
+    usage_count = models.IntegerField(
+        default=0,
+        help_text="How many times this template has been used"
+    )
+
+    class Meta:
+        db_table = 'budget_templates'
+        ordering = ['template_type', 'name']
+        verbose_name = 'Budget Template'
+        verbose_name_plural = 'Budget Templates'
+
+    def __str__(self):
+        if self.is_system_default:
+            return f"{self.name} (System)"
+        elif self.space:
+            return f"{self.name} ({self.space.name})"
+        return self.name
+
+    def clean(self):
+        """Template validation"""
+        if self.is_system_default and self.space:
+            raise ValidationError('System templates cannot belong to a specific space')
+        if not self.is_system_default and not self.space:
+            raise ValidationError('Custom templates must belong to a space')
+
+    @classmethod
+    def create_system_defaults(cls):
+        """Create system default templates"""
+        system_templates = [
+            {
+                'name': 'Monthly Rent/Mortgage',
+                'description': 'Fixed monthly housing payment with specific due date',
+                'template_type': 'bill',
+                'default_category_name': 'Housing & Rent',
+                'suggested_amount': Decimal('1200.00'),
+                'default_timing_type': 'fixed_date',
+                'default_is_recurring': True,
+                'default_recurrence_pattern': 'monthly_same_date',
+            },
+            {
+                'name': 'Weekly Groceries',
+                'description': 'Regular grocery shopping during specific week periods',
+                'template_type': 'grocery',
+                'default_category_name': 'Food & Groceries',
+                'suggested_amount': Decimal('100.00'),
+                'default_timing_type': 'date_range',
+                'default_is_recurring': True,
+                'default_recurrence_pattern': 'monthly_same_range',
+            },
+            {
+                'name': 'Biweekly Paycheck Budget',
+                'description': 'Budget allocation for biweekly income periods',
+                'template_type': 'biweekly',
+                'default_category_name': 'Other',
+                'suggested_amount': Decimal('500.00'),
+                'default_timing_type': 'fixed_date',
+                'default_is_recurring': True,
+                'default_recurrence_pattern': 'biweekly_same_day',
+            },
+            {
+                'name': 'Flexible Monthly Expense',
+                'description': 'Expenses that can be paid anytime during the month',
+                'template_type': 'flexible',
+                'default_category_name': 'Other',
+                'suggested_amount': Decimal('50.00'),
+                'default_timing_type': 'flexible',
+                'default_is_recurring': True,
+                'default_recurrence_pattern': 'monthly_flexible',
+            },
+            {
+                'name': 'Utility Bill',
+                'description': 'Monthly utilities with flexible payment date',
+                'template_type': 'bill',
+                'default_category_name': 'Utilities',
+                'suggested_amount': Decimal('150.00'),
+                'default_timing_type': 'date_range',
+                'default_is_recurring': True,
+                'default_recurrence_pattern': 'monthly_same_range',
+            },
+        ]
+
+        for template_data in system_templates:
+            category_name = template_data.pop('default_category_name')
+            category = BudgetCategory.objects.filter(
+                name=category_name,
+                is_system_default=True
+            ).first()
+
+            if category:
+                cls.objects.get_or_create(
+                    name=template_data['name'],
+                    is_system_default=True,
+                    defaults={
+                        **template_data,
+                        'default_category': category,
+                    }
+                )
+
+    def increment_usage(self):
+        """Increment usage counter"""
+        self.usage_count += 1
+        self.save(update_fields=['usage_count'])
+
+
+class SpendingBehaviorAnalysis(models.Model):
+    """Track and analyze user spending behavior patterns"""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        help_text="User whose behavior is being analyzed"
+    )
+    space = models.ForeignKey(
+        'spaces.Space',
+        on_delete=models.CASCADE,
+        help_text="Space context for this analysis"
+    )
+    category = models.ForeignKey(
+        BudgetCategory,
+        on_delete=models.CASCADE,
+        help_text="Budget category being analyzed"
+    )
+
+    # Timing behavior patterns
+    preferred_day_of_week = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Most common day of week for spending (1=Monday, 7=Sunday)"
+    )
+    preferred_time_of_day = models.CharField(
+        max_length=20,
+        choices=[
+            ('morning', 'Morning'),
+            ('afternoon', 'Afternoon'),
+            ('evening', 'Evening'),
+        ],
+        blank=True,
+        help_text="Most common time of day for spending"
+    )
+    average_delay_days = models.IntegerField(
+        default=0,
+        help_text="Average days late vs planned timing (negative = early)"
+    )
+
+    # Pattern confidence and analysis quality
+    pattern_confidence = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(100.0)],
+        help_text="Confidence in pattern accuracy (0-100%)"
+    )
+    data_points_count = models.IntegerField(
+        default=0,
+        help_text="Number of expenses used for this analysis"
+    )
+
+    # Suggestion preferences learned
+    optimal_timing_suggestion = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="AI-generated optimal timing suggestion"
+    )
+    user_follows_suggestions = models.BooleanField(
+        default=True,
+        help_text="Whether user typically follows timing suggestions"
+    )
+
+    # Analysis metadata
+    last_analysis_date = models.DateTimeField(
+        auto_now=True,
+        help_text="When this analysis was last updated"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'spending_behavior_analysis'
+        unique_together = [['user', 'space', 'category']]
+        ordering = ['-last_analysis_date']
+        verbose_name = 'Spending Behavior Analysis'
+        verbose_name_plural = 'Spending Behavior Analyses'
+
+    def __str__(self):
+        return f"{self.user.username} - {self.category.name} behavior in {self.space.name}"
+
+    def update_from_expenses(self):
+        """Update analysis based on recent expense patterns"""
+        from datetime import datetime, timedelta
+        from collections import Counter
+
+        # Get recent expenses for this user/category/space
+        recent_expenses = ActualExpense.objects.filter(
+            budget_item__space=self.space,
+            budget_item__category=self.category,
+            paid_by=self.user,
+            date_paid__gte=timezone.now() - timedelta(days=180)  # Last 6 months
+        ).order_by('-date_paid')
+
+        if not recent_expenses.exists():
+            return
+
+        self.data_points_count = recent_expenses.count()
+
+        # Analyze day of week patterns
+        days_of_week = [expense.date_paid.weekday() + 1 for expense in recent_expenses]  # 1=Monday
+        if days_of_week:
+            day_counter = Counter(days_of_week)
+            self.preferred_day_of_week = day_counter.most_common(1)[0][0]
+
+        # Calculate confidence based on data points and consistency
+        if self.data_points_count >= 3:
+            # Simple confidence calculation - can be enhanced
+            consistency_ratio = day_counter.most_common(1)[0][1] / self.data_points_count
+            self.pattern_confidence = min(consistency_ratio * 100, 100)
+        else:
+            self.pattern_confidence = 0
+
+        # Generate optimal timing suggestion
+        if self.preferred_day_of_week and self.pattern_confidence > 50:
+            day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            day_name = day_names[self.preferred_day_of_week - 1]
+            self.optimal_timing_suggestion = f"You typically spend on {day_name}s"
+
+        self.save()
+
+    def get_smart_suggestion(self):
+        """Get personalized timing suggestion for this category"""
+        if self.pattern_confidence < 30:
+            return "Not enough data for personalized suggestions yet"
+
+        if self.optimal_timing_suggestion:
+            disclaimer = " (This is based on your past behavior - feel free to adjust as needed)"
+            return self.optimal_timing_suggestion + disclaimer
+
+        return "Continue with your preferred timing"
 
 
 # Import approval workflow models

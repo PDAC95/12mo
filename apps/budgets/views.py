@@ -1,18 +1,22 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.utils import timezone
 from django.db import models, transaction
+from django.db.models import Q
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from decimal import Decimal
 import json
 
-from .models import Budget, BudgetCategory
-from .forms import BudgetForm, BudgetCategoryForm, MonthlyBudgetForm, BudgetBulkEditForm, BudgetCopyForm
+from .models import Budget, BudgetCategory, BudgetTemplate
+from .forms import BudgetForm, BudgetCategoryForm, MonthlyBudgetForm, BudgetBulkEditForm, BudgetCopyForm, SmartBudgetCreationForm, BudgetTemplateForm
 from spaces.models import Space, SpaceMember
 from spaces.utils import SpaceContextManager
+
+User = get_user_model()
 
 
 @login_required
@@ -203,9 +207,9 @@ def budget_create_from_scratch(request):
     available_categories = BudgetCategory.objects.filter(
         models.Q(space=current_space) | models.Q(space__isnull=True)
     ).exclude(
-        budget__space=current_space,
-        budget__month_period=month_period,
-        budget__is_active=True
+        budgets__space=current_space,
+        budgets__month_period=month_period,
+        budgets__is_active=True
     ).order_by('name')
 
     # Get current budget items for this month
@@ -625,4 +629,194 @@ def budget_analytics(request):
         'months_data': months_data,
         'category_breakdown': category_breakdown,
         'current_month': current_month,
+    })
+
+
+# SMART TEMPLATES SYSTEM VIEWS
+
+@login_required
+def smart_create_budget(request):
+    """Enhanced budget creation with templates and timing options"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return redirect('spaces:select')
+
+    current_month = timezone.now().strftime('%Y-%m')
+
+    if request.method == 'POST':
+        form = SmartBudgetCreationForm(
+            request.POST,
+            space=current_space,
+            user=request.user,
+            month_period=current_month
+        )
+        if form.is_valid():
+            budget = form.save()
+
+            # Create system default templates if they don't exist
+            if not BudgetTemplate.objects.filter(is_system_default=True).exists():
+                BudgetTemplate.create_system_defaults()
+
+            messages.success(request, f'Budget for {budget.category.name} created successfully!')
+            return redirect('budgets:home')
+    else:
+        form = SmartBudgetCreationForm(
+            space=current_space,
+            user=request.user,
+            month_period=current_month
+        )
+
+    # Get available templates for display
+    templates = BudgetTemplate.objects.filter(
+        Q(is_system_default=True) | Q(space=current_space),
+        is_active=True
+    ).order_by('template_type', 'name')
+
+    return render(request, 'budgets/smart_create.html', {
+        'current_space': current_space,
+        'form': form,
+        'templates': templates,
+        'current_month': current_month,
+    })
+
+
+@login_required
+def template_data_api(request, template_id):
+    """API endpoint to get template data for JS"""
+    try:
+        template = BudgetTemplate.objects.get(id=template_id)
+        # Verify access (system template or user's space template)
+        current_space = SpaceContextManager.get_current_space(request)
+        if not template.is_system_default and template.space != current_space:
+            return JsonResponse({'error': 'Access denied'}, status=403)
+
+        data = {
+            'category_id': template.default_category.id,
+            'suggested_amount': str(template.suggested_amount) if template.suggested_amount else '',
+            'timing_type': template.default_timing_type,
+            'reminder_days': template.default_reminder_days,
+            'time_of_day': template.default_time_of_day,
+            'is_recurring': template.default_is_recurring,
+            'recurrence_pattern': template.default_recurrence_pattern or '',
+            'description': template.description,
+        }
+        return JsonResponse(data)
+    except BudgetTemplate.DoesNotExist:
+        return JsonResponse({'error': 'Template not found'}, status=404)
+
+
+@login_required
+def template_list(request):
+    """List all templates available to user"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return redirect('spaces:select')
+
+    # Get system and custom templates
+    system_templates = BudgetTemplate.objects.filter(
+        is_system_default=True,
+        is_active=True
+    ).order_by('template_type', 'name')
+
+    custom_templates = BudgetTemplate.objects.filter(
+        space=current_space,
+        is_active=True
+    ).order_by('template_type', 'name')
+
+    return render(request, 'budgets/templates/list.html', {
+        'current_space': current_space,
+        'system_templates': system_templates,
+        'custom_templates': custom_templates,
+    })
+
+
+@login_required
+def template_create(request):
+    """Create a custom template"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return redirect('spaces:select')
+
+    if request.method == 'POST':
+        form = BudgetTemplateForm(
+            request.POST,
+            space=current_space,
+            user=request.user
+        )
+        if form.is_valid():
+            template = form.save()
+            messages.success(request, f'Template "{template.name}" created successfully!')
+            return redirect('budgets:template_list')
+    else:
+        form = BudgetTemplateForm(
+            space=current_space,
+            user=request.user
+        )
+
+    return render(request, 'budgets/templates/create.html', {
+        'current_space': current_space,
+        'form': form,
+    })
+
+
+@login_required
+def template_edit(request, template_id):
+    """Edit a custom template"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return redirect('spaces:select')
+
+    template = get_object_or_404(
+        BudgetTemplate,
+        id=template_id,
+        space=current_space  # Only allow editing space templates
+    )
+
+    if request.method == 'POST':
+        form = BudgetTemplateForm(
+            request.POST,
+            instance=template,
+            space=current_space,
+            user=request.user
+        )
+        if form.is_valid():
+            template = form.save()
+            messages.success(request, f'Template "{template.name}" updated successfully!')
+            return redirect('budgets:template_list')
+    else:
+        form = BudgetTemplateForm(
+            instance=template,
+            space=current_space,
+            user=request.user
+        )
+
+    return render(request, 'budgets/templates/edit.html', {
+        'current_space': current_space,
+        'form': form,
+        'template': template,
+    })
+
+
+@login_required
+def template_delete(request, template_id):
+    """Delete a custom template"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return redirect('spaces:select')
+
+    template = get_object_or_404(
+        BudgetTemplate,
+        id=template_id,
+        space=current_space  # Only allow deleting space templates
+    )
+
+    if request.method == 'POST':
+        template_name = template.name
+        template.delete()
+        messages.success(request, f'Template "{template_name}" deleted successfully!')
+        return redirect('budgets:template_list')
+
+    return render(request, 'budgets/templates/delete.html', {
+        'current_space': current_space,
+        'template': template,
     })
