@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_protect
 
-from .models import Space, SpaceMember
+from .models import Space, SpaceMember, SpaceSettings
 from .forms import SpaceCreateForm, JoinSpaceForm, SpaceUpdateForm, RegenerateInviteCodeForm, SpaceSettingsForm
 from .utils import SpaceContextManager, get_space_context
 # Force reload for new templates
@@ -101,7 +101,7 @@ def space_create(request):
         return redirect('spaces:list')
 
     if request.method == 'POST':
-        form = SpaceCreateForm(request.POST)
+        form = SpaceCreateForm(request.POST, user=request.user)
         if form.is_valid():
             try:
                 with transaction.atomic():
@@ -115,7 +115,7 @@ def space_create(request):
             except ValidationError as e:
                 messages.error(request, str(e))
     else:
-        form = SpaceCreateForm()
+        form = SpaceCreateForm(user=request.user)
 
     context = {
         'form': form,
@@ -644,14 +644,14 @@ def space_settings(request, pk):
             return redirect('spaces:list')
 
         # Get or create space settings
-        settings, created = space.settings, False
-        if not hasattr(space, 'settings'):
-            from .models import SpaceSettings
+        try:
+            settings = space.settings
+            created = False
+        except SpaceSettings.DoesNotExist:
             settings = SpaceSettings.objects.create(space=space)
             created = True
 
         if request.method == 'POST':
-            from .forms import SpaceSettingsForm
             form = SpaceSettingsForm(request.POST, instance=settings)
 
             if form.is_valid():
@@ -661,7 +661,6 @@ def space_settings(request, pk):
             else:
                 messages.error(request, 'Please correct the errors below.')
         else:
-            from .forms import SpaceSettingsForm
             form = SpaceSettingsForm(instance=settings)
 
         # Get space member count for context

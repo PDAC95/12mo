@@ -25,7 +25,10 @@
       "Bash(del test_budget.py)",
       "Bash(find:*)",
       "Bash(tasklist)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(.venvScriptsactivate)",
+      "Bash(call venvScriptsactivate.bat)",
+      "Bash(start.bat)"
     ],
     "deny": [],
     "ask": []

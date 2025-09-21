@@ -7,6 +7,10 @@ from .models import Space, SpaceMember, SpaceSettings
 class SpaceCreateForm(forms.ModelForm):
     """Form for creating a new space"""
 
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
     class Meta:
         model = Space
         fields = ['name', 'description', 'color', 'icon']
@@ -51,6 +55,13 @@ class SpaceCreateForm(forms.ModelForm):
         if description and len(description.strip()) > 200:
             raise ValidationError('Space description cannot exceed 200 characters.')
         return description
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Assign created_by BEFORE model validation
+        if self.user and self.instance:
+            self.instance.created_by = self.user
+        return cleaned_data
 
     def save(self, commit=True, user=None):
         """Save the space and automatically add creator as owner"""

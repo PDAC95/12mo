@@ -126,9 +126,7 @@ class Space(models.Model):
         if self.name and self.created_by:
             duplicate_check = Space.objects.filter(
                 name__iexact=self.name.strip(),
-                spacemember__user=self.created_by,
-                spacemember__role='owner',
-                spacemember__is_active=True,
+                created_by=self.created_by,
                 is_active=True
             ).exclude(pk=self.pk)
 
@@ -258,7 +256,8 @@ class Space(models.Model):
         try:
             return self.settings
         except SpaceSettings.DoesNotExist:
-            return SpaceSettings.objects.create(space=self)
+            settings, created = SpaceSettings.objects.get_or_create(space=self)
+            return settings
 
 
 class SpaceMember(models.Model):
@@ -472,4 +471,5 @@ from django.dispatch import receiver
 def create_space_settings(sender, instance, created, **kwargs):
     """Automatically create default settings when a space is created"""
     if created:
-        SpaceSettings.objects.create(space=instance)
+        # Use get_or_create to avoid conflicts if settings already exist
+        SpaceSettings.objects.get_or_create(space=instance)
