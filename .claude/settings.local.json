@@ -28,7 +28,8 @@
       "Bash(cat:*)",
       "Bash(.venvScriptsactivate)",
       "Bash(call venvScriptsactivate.bat)",
-      "Bash(start.bat)"
+      "Bash(start.bat)",
+      "Bash(playwright install:*)"
     ],
     "deny": [],
     "ask": []
