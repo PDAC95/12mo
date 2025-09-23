@@ -38,7 +38,8 @@
       "Bash(node:*)",
       "Bash(npx -y @upstash/context7-mcp:*)",
       "Bash(where npx)",
-      "Bash(npx @upstash/context7-mcp:*)"
+      "Bash(npx @upstash/context7-mcp:*)",
+      "Bash(/bashes)"
     ],
     "deny": [],
     "ask": []
