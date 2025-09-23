@@ -1,0 +1,78 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["@upstash/context7-mcp", "--transport", "stdio"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": [],
+      "description": "Context7 MCP - Up-to-date documentation and code examples for Django, Alpine.js, Tailwind CSS, and more"
+    },
+    "database": {
+      "command": "python",
+      "args": ["db_inspector.py"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": [],
+      "description": "Wallai Database Inspector - SQLite/PostgreSQL introspection and analysis"
+    },
+    "django-management": {
+      "command": "python",
+      "args": ["django_mcp_manager.py"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": [],
+      "description": "Django Management MCP - Run Django commands, migrations, tests, and health checks"
+    },
+    "git-advanced": {
+      "command": "python",
+      "args": ["git_mcp_helper.py"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": [],
+      "description": "Git Advanced MCP - Smart commits, branch management, and Sprint tracking"
+    },
+    "playwright-testing": {
+      "command": "npx",
+      "args": ["playwright", "test"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": [],
+      "description": "Playwright Testing MCP - E2E testing for Wallai PWA with mobile support"
+    }
+  },
+  "wallaiMCPConfiguration": {
+    "projectName": "Wallai - Personal Finance Tracker",
+    "currentSprint": "Sprint 3 - Expense Tracking",
+    "sprintGoals": [
+      "Implement Expense model with budget integration",
+      "Create real-time expense entry forms",
+      "Build expense splitting logic for multi-member spaces",
+      "Integrate expenses with budget progress tracking"
+    ],
+    "mcpUsagePatterns": {
+      "development": [
+        "Use 'use context7 Django model relationships' for expense splitting implementation",
+        "Use Database MCP for quick model validation: 'python db_inspector.py summary'",
+        "Use Django MCP for migrations: 'python django_mcp_manager.py migrate expenses'",
+        "Use Git MCP for smart commits: 'python git_mcp_helper.py commit feat expenses \"Add expense model\"'"
+      ],
+      "testing": [
+        "Use Playwright for E2E testing: 'npx playwright test'",
+        "Use Django MCP for unit tests: 'python django_mcp_manager.py test expenses'"
+      ],
+      "sprint3Specific": [
+        "Context7: 'use context7 Django model validation for financial calculations with decimal precision'",
+        "Context7: 'use context7 Alpine.js dynamic form components for mobile expense entry'",
+        "Context7: 'use context7 Django REST Framework ViewSets for expense APIs'"
+      ]
+    },
+    "quickCommands": {
+      "healthCheck": "python django_mcp_manager.py health && python db_inspector.py summary",
+      "sprint3Ready": "python django_mcp_manager.py sprint3",
+      "testAll": "python django_mcp_manager.py test && npx playwright test",
+      "smartCommit": "python git_mcp_helper.py commit feat expenses 'Your commit message'",
+      "dbAnalysis": "python db_inspector.py summary && python db_inspector.py budget"
+    }
+  }
+}
