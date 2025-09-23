@@ -38,3 +38,19 @@ htmlcov/
 # Celery
 celerybeat-schedule
 celerybeat.pid
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+tests/screenshots/
+
+# Claude Code MCP
+.claude/settings.local.json

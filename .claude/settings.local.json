@@ -29,7 +29,16 @@
       "Bash(.venvScriptsactivate)",
       "Bash(call venvScriptsactivate.bat)",
       "Bash(start.bat)",
-      "Bash(playwright install:*)"
+      "Bash(playwright install:*)",
+      "Bash(npm install:*)",
+      "Bash(npx playwright:*)",
+      "mcp__ide__getDiagnostics",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(node:*)",
+      "Bash(npx -y @upstash/context7-mcp:*)",
+      "Bash(where npx)",
+      "Bash(npx @upstash/context7-mcp:*)"
     ],
     "deny": [],
     "ask": []
