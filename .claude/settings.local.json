@@ -39,7 +39,21 @@
       "Bash(npx -y @upstash/context7-mcp:*)",
       "Bash(where npx)",
       "Bash(npx @upstash/context7-mcp:*)",
-      "Bash(/bashes)"
+      "Bash(/bashes)",
+      "Bash(git clone:*)",
+      "Bash(uv sync:*)",
+      "Bash(where python)",
+      "Bash(where claude)",
+      "Bash(claude mcp add:*)",
+      "Bash(claude mcp:*)",
+      "Bash(C:dev12movenvScriptspython.exe server.py --version)",
+      "mcp__chrome-devtools__start_chrome_and_connect",
+      "mcp__chrome-devtools__get_console_error_summary",
+      "mcp__chrome-devtools__execute_javascript",
+      "mcp__chrome-devtools__get_console_logs",
+      "mcp__chrome-devtools__monitor_console_live",
+      "mcp__chrome-devtools__navigate_to_url",
+      "mcp__chrome-devtools__disconnect_from_browser"
     ],
     "deny": [],
     "ask": []

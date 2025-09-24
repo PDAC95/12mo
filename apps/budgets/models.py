@@ -262,6 +262,19 @@ class Budget(models.Model):
         help_text="How this recurring expense should repeat"
     )
 
+    # Template tracking
+    template_used = models.ForeignKey(
+        'BudgetTemplate',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Template used to create this budget (if any)"
+    )
+    is_custom = models.BooleanField(
+        default=False,
+        help_text="Whether this was created from scratch vs template"
+    )
+
     # Behavior tracking for smart suggestions
     actual_spend_dates = models.JSONField(
         default=list,
@@ -339,6 +352,16 @@ class Budget(models.Model):
     is_active = models.BooleanField(
         default=True,
         help_text="Whether this budget is active"
+    )
+
+    # Payment method for this budget
+    payment_method = models.ForeignKey(
+        'PaymentMethod',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='budgets',
+        help_text="Payment method to use for this expense"
     )
 
     class Meta:
@@ -814,87 +837,82 @@ class ExpenseSplit(models.Model):
 
 
 class BudgetTemplate(models.Model):
-    """Predefined templates for quick budget creation"""
+    """Predefined templates for quick budget creation with frameworks and situations"""
 
     TEMPLATE_TYPES = [
-        ('bill', 'Monthly Bill'),           # Fixed date expenses like rent, utilities
-        ('grocery', 'Groceries'),           # Weekly/biweekly groceries
-        ('biweekly', 'Biweekly Expense'),   # Paycheck, biweekly bills
-        ('flexible', 'Flexible Expense'),   # Gas, coffee, misc
-        ('custom', 'Custom Template'),      # User-created templates
+        ('framework', 'Framework Financiero'),  # 50/30/20, Zero-based, etc.
+        ('situation', 'Situación Práctica'),   # Casa, Roommates, Viaje, etc.
+    ]
+
+    FRAMEWORK_TYPES = [
+        ('50_30_20', '50/30/20 Rule'),          # Balanced approach
+        ('zero_based', 'Zero-based Budget'),    # Every dollar assigned
+        ('60_20_20', '60/20/20 Aggressive'),    # Higher savings focus
+    ]
+
+    SITUATION_TYPES = [
+        ('casa', 'Casa'),                       # Home/household budget
+        ('roommates', 'Roommates'),             # Shared living expenses
+        ('viaje_negocios', 'Viaje de Negocios'), # Business travel planning
+        ('plan_evento', 'Plan Evento'),         # Event planning budget
+        ('oficina_negocio', 'Oficina/Negocio'), # Business/office expenses
     ]
 
     name = models.CharField(
         max_length=100,
-        help_text="Template name (e.g., 'Monthly Rent', 'Weekly Groceries')"
+        help_text="Template name (e.g., '50/30/20 Rule', 'Casa')"
     )
     description = models.TextField(
-        max_length=300,
+        max_length=500,
         blank=True,
         help_text="Description of when to use this template"
     )
     template_type = models.CharField(
         max_length=20,
         choices=TEMPLATE_TYPES,
-        help_text="Type of template for categorization"
+        help_text="Type of template (framework or situation)"
+    )
+    framework_type = models.CharField(
+        max_length=20,
+        choices=FRAMEWORK_TYPES,
+        blank=True,
+        null=True,
+        help_text="Specific framework type (only for framework templates)"
+    )
+    situation_type = models.CharField(
+        max_length=20,
+        choices=SITUATION_TYPES,
+        blank=True,
+        null=True,
+        help_text="Specific situation type (only for situation templates)"
     )
 
-    # Default values for budget creation
-    default_category = models.ForeignKey(
-        BudgetCategory,
-        on_delete=models.CASCADE,
-        help_text="Default category for this template"
+    # Template data structure
+    category_data = models.JSONField(
+        default=dict,
+        help_text="Category allocations as JSON: {category_name: {percentage: 50, amount: 1825, section: 'NECESIDADES'}}"
     )
-    suggested_amount = models.DecimalField(
+    sections_data = models.JSONField(
+        default=dict,
+        help_text="Section groupings as JSON: {'NECESIDADES': {percentage: 50, color: 'green', categories: [...]}"
+    )
+    default_total_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        null=True,
-        blank=True,
-        help_text="Suggested default amount (optional)"
+        default=Decimal('3650.00'),
+        help_text="Default total monthly amount for calculations"
     )
 
-    # Default timing configuration
-    default_timing_type = models.CharField(
+    # Visual and display configuration
+    color_scheme = models.CharField(
         max_length=20,
-        choices=[
-            ('fixed_date', 'Fixed Date'),
-            ('date_range', 'Date Range'),
-            ('flexible', 'Flexible'),
-        ],
-        help_text="Default timing type for this template"
+        default='blue',
+        help_text="Color scheme for this template"
     )
-    default_reminder_days = models.IntegerField(
-        default=3,
-        help_text="Default reminder days before due"
-    )
-    default_time_of_day = models.CharField(
-        max_length=20,
-        choices=[
-            ('morning', 'Morning'),
-            ('afternoon', 'Afternoon'),
-            ('evening', 'Evening'),
-            ('anytime', 'Anytime'),
-        ],
-        default='anytime',
-        help_text="Default preferred time of day"
-    )
-
-    # Recurrence defaults
-    default_is_recurring = models.BooleanField(
-        default=False,
-        help_text="Whether expenses from this template should be recurring by default"
-    )
-    default_recurrence_pattern = models.CharField(
+    icon = models.CharField(
         max_length=30,
-        choices=[
-            ('monthly_same_date', 'Same date each month'),
-            ('monthly_same_range', 'Same range each month'),
-            ('monthly_flexible', 'Flexible each month'),
-            ('biweekly_same_day', 'Same day biweekly'),
-        ],
-        blank=True,
-        null=True,
-        help_text="Default recurrence pattern"
+        default='wallet',
+        help_text="Icon identifier for this template"
     )
 
     # Template configuration
@@ -949,83 +967,265 @@ class BudgetTemplate(models.Model):
         if not self.is_system_default and not self.space:
             raise ValidationError('Custom templates must belong to a space')
 
+        # Validate that framework templates have framework_type set
+        if self.template_type == 'framework' and not self.framework_type:
+            raise ValidationError('Framework templates must have framework_type set')
+
+        # Validate that situation templates have situation_type set
+        if self.template_type == 'situation' and not self.situation_type:
+            raise ValidationError('Situation templates must have situation_type set')
+
     @classmethod
     def create_system_defaults(cls):
-        """Create system default templates"""
-        system_templates = [
+        """Create system default templates for frameworks and situations"""
+
+        # Framework Templates
+        framework_templates = [
             {
-                'name': 'Monthly Rent/Mortgage',
-                'description': 'Fixed monthly housing payment with specific due date',
-                'template_type': 'bill',
-                'default_category_name': 'Housing & Rent',
-                'suggested_amount': Decimal('1200.00'),
-                'default_timing_type': 'fixed_date',
-                'default_is_recurring': True,
-                'default_recurrence_pattern': 'monthly_same_date',
+                'name': '50/30/20 Rule',
+                'description': 'Asigna 50% a necesidades básicas, 30% a gustos personales y 20% a ahorros. Si no puedes ahorrar el 20%, empieza con menos pero mantén el orden de prioridades.',
+                'template_type': 'framework',
+                'framework_type': '50_30_20',
+                'color_scheme': 'green',
+                'icon': 'balance-scale',
+                'sections_data': {
+                    'NECESIDADES': {'percentage': 50, 'color': 'green', 'emoji': '🟢'},
+                    'GUSTOS': {'percentage': 30, 'color': 'yellow', 'emoji': '🟡'},
+                    'AHORROS': {'percentage': 20, 'color': 'blue', 'emoji': '🔵'}
+                },
+                'category_data': {
+                    'Housing & Rent': {'percentage': 32.9, 'amount': 1200, 'section': 'NECESIDADES'},
+                    'Food & Groceries': {'percentage': 11.0, 'amount': 400, 'section': 'NECESIDADES'},
+                    'Transportation': {'percentage': 6.2, 'amount': 225, 'section': 'NECESIDADES'},
+                    'Entertainment': {'percentage': 8.2, 'amount': 300, 'section': 'GUSTOS'},
+                    'Shopping': {'percentage': 11.0, 'amount': 400, 'section': 'GUSTOS'},
+                    'Other': {'percentage': 10.8, 'amount': 395, 'section': 'GUSTOS'},
+                    'Savings': {'percentage': 10.0, 'amount': 365, 'section': 'AHORROS'},
+                    'Debt Payments': {'percentage': 10.0, 'amount': 365, 'section': 'AHORROS'}
+                }
             },
             {
-                'name': 'Weekly Groceries',
-                'description': 'Regular grocery shopping during specific week periods',
-                'template_type': 'grocery',
-                'default_category_name': 'Food & Groceries',
-                'suggested_amount': Decimal('100.00'),
-                'default_timing_type': 'date_range',
-                'default_is_recurring': True,
-                'default_recurrence_pattern': 'monthly_same_range',
+                'name': 'Zero-based Budget',
+                'description': 'Cada dólar tiene un propósito específico. Los ingresos menos todos los gastos asignados debe ser igual a cero.',
+                'template_type': 'framework',
+                'framework_type': 'zero_based',
+                'color_scheme': 'purple',
+                'icon': 'calculator',
+                'sections_data': {
+                    'INGRESOS': {'percentage': 100, 'color': 'green', 'emoji': '💰'},
+                    'GASTOS': {'percentage': 100, 'color': 'red', 'emoji': '💸'}
+                },
+                'category_data': {
+                    'Housing & Rent': {'percentage': 32.9, 'amount': 1200, 'section': 'GASTOS'},
+                    'Savings': {'percentage': 13.7, 'amount': 500, 'section': 'GASTOS'},
+                    'Food & Groceries': {'percentage': 11.0, 'amount': 400, 'section': 'GASTOS'},
+                    'Transportation': {'percentage': 8.2, 'amount': 300, 'section': 'GASTOS'},
+                    'Debt Payments': {'percentage': 8.2, 'amount': 300, 'section': 'GASTOS'},
+                    'Shopping': {'percentage': 6.8, 'amount': 250, 'section': 'GASTOS'},
+                    'Entertainment': {'percentage': 5.5, 'amount': 200, 'section': 'GASTOS'},
+                    'Utilities': {'percentage': 5.5, 'amount': 200, 'section': 'GASTOS'},
+                    'Healthcare': {'percentage': 4.1, 'amount': 150, 'section': 'GASTOS'},
+                    'Other': {'percentage': 4.1, 'amount': 150, 'section': 'GASTOS'}
+                }
             },
             {
-                'name': 'Biweekly Paycheck Budget',
-                'description': 'Budget allocation for biweekly income periods',
-                'template_type': 'biweekly',
-                'default_category_name': 'Other',
-                'suggested_amount': Decimal('500.00'),
-                'default_timing_type': 'fixed_date',
-                'default_is_recurring': True,
-                'default_recurrence_pattern': 'biweekly_same_day',
-            },
-            {
-                'name': 'Flexible Monthly Expense',
-                'description': 'Expenses that can be paid anytime during the month',
-                'template_type': 'flexible',
-                'default_category_name': 'Other',
-                'suggested_amount': Decimal('50.00'),
-                'default_timing_type': 'flexible',
-                'default_is_recurring': True,
-                'default_recurrence_pattern': 'monthly_flexible',
-            },
-            {
-                'name': 'Utility Bill',
-                'description': 'Monthly utilities with flexible payment date',
-                'template_type': 'bill',
-                'default_category_name': 'Utilities',
-                'suggested_amount': Decimal('150.00'),
-                'default_timing_type': 'date_range',
-                'default_is_recurring': True,
-                'default_recurrence_pattern': 'monthly_same_range',
-            },
+                'name': '60/20/20 Aggressive',
+                'description': 'Enfoque agresivo de ahorro: 60% gastos necesarios, 20% ahorros agresivos, 20% estilo de vida.',
+                'template_type': 'framework',
+                'framework_type': '60_20_20',
+                'color_scheme': 'red',
+                'icon': 'trending-up',
+                'sections_data': {
+                    'NECESIDADES': {'percentage': 60, 'color': 'green', 'emoji': '🟢'},
+                    'AHORROS': {'percentage': 20, 'color': 'blue', 'emoji': '🔵'},
+                    'LIFESTYLE': {'percentage': 20, 'color': 'yellow', 'emoji': '🟡'}
+                },
+                'category_data': {
+                    'Housing & Rent': {'percentage': 32.9, 'amount': 1200, 'section': 'NECESIDADES'},
+                    'Food & Groceries': {'percentage': 15.1, 'amount': 550, 'section': 'NECESIDADES'},
+                    'Transportation': {'percentage': 8.2, 'amount': 300, 'section': 'NECESIDADES'},
+                    'Utilities': {'percentage': 4.1, 'amount': 150, 'section': 'NECESIDADES'},
+                    'Savings': {'percentage': 13.7, 'amount': 500, 'section': 'AHORROS'},
+                    'Debt Payments': {'percentage': 6.8, 'amount': 250, 'section': 'AHORROS'},
+                    'Entertainment': {'percentage': 13.7, 'amount': 500, 'section': 'LIFESTYLE'},
+                    'Shopping': {'percentage': 5.5, 'amount': 200, 'section': 'LIFESTYLE'}
+                }
+            }
         ]
 
-        for template_data in system_templates:
-            category_name = template_data.pop('default_category_name')
-            category = BudgetCategory.objects.filter(
-                name=category_name,
-                is_system_default=True
-            ).first()
+        # Situation Templates
+        situation_templates = [
+            {
+                'name': 'Casa',
+                'description': 'Presupuesto familiar para gastos del hogar compartido entre miembros de la familia.',
+                'template_type': 'situation',
+                'situation_type': 'casa',
+                'color_scheme': 'blue',
+                'icon': 'home',
+                'category_data': {
+                    'Housing & Rent': {'percentage': 35.0, 'amount': 1400, 'section': 'FIJOS'},
+                    'Utilities': {'percentage': 6.0, 'amount': 240, 'section': 'FIJOS'},
+                    'Food & Groceries': {'percentage': 15.0, 'amount': 600, 'section': 'VARIABLES'},
+                    'Transportation': {'percentage': 10.0, 'amount': 400, 'section': 'VARIABLES'},
+                    'Healthcare': {'percentage': 8.0, 'amount': 320, 'section': 'VARIABLES'},
+                    'Entertainment': {'percentage': 6.0, 'amount': 240, 'section': 'VARIABLES'},
+                    'Shopping': {'percentage': 5.0, 'amount': 200, 'section': 'VARIABLES'},
+                    'Savings': {'percentage': 15.0, 'amount': 600, 'section': 'AHORROS'}
+                }
+            },
+            {
+                'name': 'Roommates',
+                'description': 'Presupuesto para gastos compartidos entre compañeros de piso o cuarto.',
+                'template_type': 'situation',
+                'situation_type': 'roommates',
+                'color_scheme': 'orange',
+                'icon': 'users',
+                'category_data': {
+                    'Housing & Rent': {'percentage': 40.0, 'amount': 800, 'section': 'COMPARTIDOS'},
+                    'Utilities': {'percentage': 10.0, 'amount': 200, 'section': 'COMPARTIDOS'},
+                    'Food & Groceries': {'percentage': 20.0, 'amount': 400, 'section': 'COMPARTIDOS'},
+                    'Entertainment': {'percentage': 15.0, 'amount': 300, 'section': 'COMPARTIDOS'},
+                    'Shopping': {'percentage': 10.0, 'amount': 200, 'section': 'PERSONALES'},
+                    'Other': {'percentage': 5.0, 'amount': 100, 'section': 'PERSONALES'}
+                }
+            },
+            {
+                'name': 'Viaje de Negocios',
+                'description': 'Presupuesto para planificar gastos de viaje de trabajo o conferencias.',
+                'template_type': 'situation',
+                'situation_type': 'viaje_negocios',
+                'color_scheme': 'indigo',
+                'icon': 'briefcase',
+                'category_data': {
+                    'Transportation': {'percentage': 35.0, 'amount': 700, 'section': 'VIAJE'},
+                    'Housing & Rent': {'percentage': 25.0, 'amount': 500, 'section': 'VIAJE'},
+                    'Food & Groceries': {'percentage': 20.0, 'amount': 400, 'section': 'VIAJE'},
+                    'Entertainment': {'percentage': 10.0, 'amount': 200, 'section': 'VIAJE'},
+                    'Other': {'percentage': 10.0, 'amount': 200, 'section': 'VARIOS'}
+                }
+            },
+            {
+                'name': 'Plan Evento',
+                'description': 'Presupuesto para organizar fiestas, bodas, reuniones o eventos especiales.',
+                'template_type': 'situation',
+                'situation_type': 'plan_evento',
+                'color_scheme': 'pink',
+                'icon': 'calendar',
+                'category_data': {
+                    'Food & Groceries': {'percentage': 30.0, 'amount': 600, 'section': 'EVENTO'},
+                    'Entertainment': {'percentage': 25.0, 'amount': 500, 'section': 'EVENTO'},
+                    'Shopping': {'percentage': 20.0, 'amount': 400, 'section': 'EVENTO'},
+                    'Other': {'percentage': 15.0, 'amount': 300, 'section': 'VARIOS'},
+                    'Transportation': {'percentage': 10.0, 'amount': 200, 'section': 'VARIOS'}
+                }
+            },
+            {
+                'name': 'Oficina/Negocio',
+                'description': 'Presupuesto para gastos operativos de oficina o pequeño negocio.',
+                'template_type': 'situation',
+                'situation_type': 'oficina_negocio',
+                'color_scheme': 'gray',
+                'icon': 'building',
+                'category_data': {
+                    'Housing & Rent': {'percentage': 25.0, 'amount': 500, 'section': 'OPERATIVOS'},
+                    'Utilities': {'percentage': 15.0, 'amount': 300, 'section': 'OPERATIVOS'},
+                    'Shopping': {'percentage': 20.0, 'amount': 400, 'section': 'OPERATIVOS'},
+                    'Transportation': {'percentage': 10.0, 'amount': 200, 'section': 'OPERATIVOS'},
+                    'Entertainment': {'percentage': 10.0, 'amount': 200, 'section': 'MARKETING'},
+                    'Other': {'percentage': 20.0, 'amount': 400, 'section': 'VARIOS'}
+                }
+            }
+        ]
 
-            if category:
-                cls.objects.get_or_create(
-                    name=template_data['name'],
-                    is_system_default=True,
-                    defaults={
-                        **template_data,
-                        'default_category': category,
-                    }
-                )
+        # Create all templates
+        all_templates = framework_templates + situation_templates
+
+        for template_data in all_templates:
+            cls.objects.get_or_create(
+                name=template_data['name'],
+                template_type=template_data['template_type'],
+                is_system_default=True,
+                defaults=template_data
+            )
 
     def increment_usage(self):
         """Increment usage counter"""
         self.usage_count += 1
         self.save(update_fields=['usage_count'])
+
+    def get_calculated_categories(self, total_amount=None):
+        """Get categories with calculated amounts based on total amount"""
+        if total_amount is None:
+            total_amount = self.default_total_amount
+
+        calculated_categories = {}
+        for category_name, data in self.category_data.items():
+            calculated_categories[category_name] = {
+                'percentage': data['percentage'],
+                'amount': round(float(total_amount) * data['percentage'] / 100, 2),
+                'section': data['section']
+            }
+        return calculated_categories
+
+    def get_sections_summary(self, total_amount=None):
+        """Get summary of sections with totals"""
+        if total_amount is None:
+            total_amount = self.default_total_amount
+
+        sections = {}
+        calculated_categories = self.get_calculated_categories(total_amount)
+
+        for category_name, data in calculated_categories.items():
+            section_name = data['section']
+            if section_name not in sections:
+                sections[section_name] = {
+                    'total_amount': 0,
+                    'total_percentage': 0,
+                    'categories': [],
+                    'color': self.sections_data.get(section_name, {}).get('color', 'blue'),
+                    'emoji': self.sections_data.get(section_name, {}).get('emoji', '📋')
+                }
+
+            sections[section_name]['total_amount'] += data['amount']
+            sections[section_name]['total_percentage'] += data['percentage']
+            sections[section_name]['categories'].append({
+                'name': category_name,
+                'amount': data['amount'],
+                'percentage': data['percentage']
+            })
+
+        return sections
+
+    @property
+    def display_icon(self):
+        """Get the icon for display with fallback"""
+        icon_map = {
+            'balance-scale': 'scale',
+            'calculator': 'calculator',
+            'trending-up': 'trending-up',
+            'home': 'home',
+            'users': 'users',
+            'briefcase': 'briefcase',
+            'calendar': 'calendar',
+            'building': 'building',
+        }
+        return icon_map.get(self.icon, 'wallet')
+
+    @classmethod
+    def get_frameworks(cls):
+        """Get all framework templates"""
+        return cls.objects.filter(
+            template_type='framework',
+            is_active=True
+        ).order_by('framework_type')
+
+    @classmethod
+    def get_situations(cls):
+        """Get all situation templates"""
+        return cls.objects.filter(
+            template_type='situation',
+            is_active=True
+        ).order_by('situation_type')
 
 
 class SpendingBehaviorAnalysis(models.Model):
@@ -1159,6 +1359,158 @@ class SpendingBehaviorAnalysis(models.Model):
             return self.optimal_timing_suggestion + disclaimer
 
         return "Continue with your preferred timing"
+
+
+class CategorySuggestion(models.Model):
+    """Suggested category names for autocomplete functionality"""
+
+    CATEGORY_TYPES = [
+        ('housing', 'Housing & Utilities'),
+        ('food', 'Food & Dining'),
+        ('transportation', 'Transportation'),
+        ('healthcare', 'Healthcare'),
+        ('entertainment', 'Entertainment'),
+        ('shopping', 'Shopping & Personal'),
+        ('education', 'Education & Learning'),
+        ('savings', 'Savings & Investment'),
+        ('debt', 'Debt & Loans'),
+        ('subscriptions', 'Subscriptions & Services'),
+        ('pets', 'Pet Care'),
+        ('family', 'Family & Children'),
+        ('travel', 'Travel & Vacation'),
+        ('business', 'Business & Professional'),
+        ('other', 'Other'),
+    ]
+
+    name = models.CharField(max_length=100, unique=True)
+    category_type = models.CharField(max_length=20, choices=CATEGORY_TYPES)
+    usage_count = models.PositiveIntegerField(default=0)
+    is_popular = models.BooleanField(default=False)  # Mark most common ones
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-is_popular', '-usage_count', 'name']
+        indexes = [
+            models.Index(fields=['name']),
+            models.Index(fields=['category_type']),
+            models.Index(fields=['-usage_count']),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def increment_usage(self):
+        """Increment usage count when this suggestion is used"""
+        self.usage_count += 1
+        self.save(update_fields=['usage_count'])
+
+    @classmethod
+    def get_suggestions(cls, query='', limit=10):
+        """Get category suggestions based on search query"""
+        if query:
+            suggestions = cls.objects.filter(name__icontains=query)[:limit]
+        else:
+            suggestions = cls.objects.filter(is_popular=True)[:limit]
+        return suggestions
+
+
+class PaymentMethod(models.Model):
+    """Payment methods for budgets (debit cards, credit cards, cash, etc.)"""
+
+    # Payment method types
+    TYPE_CHOICES = [
+        ('debit', 'Debit Card'),
+        ('credit', 'Credit Card'),
+        ('cash', 'Cash'),
+        ('transfer', 'Bank Transfer'),
+        ('other', 'Other'),
+    ]
+
+    name = models.CharField(max_length=100, help_text="e.g., 'Scotia Debit 2105' or 'Cash Wallet'")
+    payment_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='debit')
+    space = models.ForeignKey('spaces.Space', on_delete=models.CASCADE, related_name='payment_methods')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        unique_together = ['name', 'space']
+
+    def __str__(self):
+        return f"{self.name} ({self.get_payment_type_display()})"
+
+
+class BudgetSplit(models.Model):
+    """For handling split budget assignments between multiple users"""
+
+    SPLIT_TYPE_CHOICES = [
+        ('percentage', 'Percentage'),
+        ('fixed_amount', 'Fixed Amount'),
+    ]
+
+    budget = models.ForeignKey(
+        'Budget',
+        on_delete=models.CASCADE,
+        related_name='splits'
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        help_text="User responsible for this portion"
+    )
+    split_type = models.CharField(
+        max_length=20,
+        choices=SPLIT_TYPE_CHOICES,
+        default='percentage',
+        help_text="How this split is calculated"
+    )
+    percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.01')), MaxValueValidator(Decimal('100.00'))],
+        help_text="Percentage of budget this user is responsible for"
+    )
+    fixed_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        help_text="Fixed amount this user is responsible for"
+    )
+    calculated_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Final calculated amount for this user"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'budget_splits'
+        unique_together = [['budget', 'user']]
+        verbose_name = 'Budget Split'
+        verbose_name_plural = 'Budget Splits'
+        ordering = ['user__first_name', 'user__username']
+
+    def __str__(self):
+        user_name = self.user.first_name or self.user.username
+        if self.split_type == 'percentage':
+            return f"{user_name}: {self.percentage}% (${self.calculated_amount})"
+        else:
+            return f"{user_name}: ${self.fixed_amount}"
+
+    def save(self, *args, **kwargs):
+        """Calculate the amount based on split type"""
+        if self.split_type == 'percentage' and self.percentage:
+            self.calculated_amount = (self.budget.amount * self.percentage / 100).quantize(Decimal('0.01'))
+        elif self.split_type == 'fixed_amount' and self.fixed_amount:
+            self.calculated_amount = self.fixed_amount
+        super().save(*args, **kwargs)
 
 
 # Import approval workflow models

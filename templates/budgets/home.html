@@ -47,28 +47,28 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                                     </svg>
                                     <div>
-                                        <p class="font-medium">Create from Scratch</p>
+                                        <p class="font-medium">From Scratch</p>
                                         <p class="text-xs text-gray-500">Build your budget step by step</p>
                                     </div>
                                 </a>
-                                <a href="{% url 'budgets:create_monthly' %}"
-                                   class="group flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
-                                    <svg class="mr-3 h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                    </svg>
-                                    <div>
-                                        <p class="font-medium">Quick Monthly Setup</p>
-                                        <p class="text-xs text-gray-500">Use default categories with preset amounts</p>
-                                    </div>
-                                </a>
-                                <a href="{% url 'budgets:copy' %}"
+                                <a href="{% url 'budgets:template_gallery' %}?filter=framework"
                                    class="group flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
                                     <svg class="mr-3 h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                                     </svg>
                                     <div>
-                                        <p class="font-medium">Copy Previous Budget</p>
-                                        <p class="text-xs text-gray-500">Copy amounts from another month</p>
+                                        <p class="font-medium">Financial Frameworks</p>
+                                        <p class="text-xs text-gray-500">50/30/20, Zero-based, etc.</p>
+                                    </div>
+                                </a>
+                                <a href="{% url 'budgets:template_gallery' %}?filter=situation"
+                                   class="group flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+                                    <svg class="mr-3 h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                    </svg>
+                                    <div>
+                                        <p class="font-medium">Situation Templates</p>
+                                        <p class="text-xs text-gray-500">House, Roommates, Business Travel</p>
                                     </div>
                                 </a>
                             </div>
@@ -320,7 +320,7 @@
                         <span class="text-sm font-medium text-gray-900">Create from Scratch</span>
                         <span class="text-xs text-gray-500 text-center mt-1">Build step by step</span>
                     </a>
-                    <a href="{% url 'budgets:create_monthly' %}"
+                    <a href="{% url 'budgets:template_gallery' %}"
                        class="flex flex-col items-center p-6 border-2 border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors">
                         <svg class="w-8 h-8 text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>

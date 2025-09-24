@@ -115,20 +115,22 @@
                     </div>
 
                     <!-- Category -->
-                    <div>
-                        <label for="{{ form.category.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            Category
-                        </label>
-                        <select name="{{ form.category.name }}"
-                                id="{{ form.category.id_for_label }}"
-                                class="wallai-input bg-white text-gray-900">
-                            {% for choice in form.category.field.queryset %}
-                                <option value="{{ choice.id }}"
-                                        {% if choice.id == form.category.value %}selected{% endif %}>
-                                    {{ choice.name }}
-                                </option>
-                            {% endfor %}
-                        </select>
+                    <div class="relative">
+                        <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                        <input type="text"
+                               name="category_name"
+                               id="category"
+                               class="wallai-input"
+                               placeholder="Type category name (e.g., Groceries, Rent, Gas...)"
+                               autocomplete="off"
+                               value="{{ budget.category.name }}"
+                               required>
+                        <input type="hidden" name="category_id" id="category_id" value="{{ budget.category.id }}">
+
+                        <!-- Suggestions dropdown -->
+                        <div id="suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 hidden max-h-48 overflow-y-auto">
+                            <!-- Suggestions will be populated here -->
+                        </div>
                         {% if form.category.errors %}
                             <div class="mt-1 text-sm text-red-600">
                                 {{ form.category.errors.0 }}
@@ -136,30 +138,80 @@
                         {% endif %}
                     </div>
 
-                    <!-- Assigned To -->
+                    <!-- Assignment -->
                     <div>
-                        <label for="{{ form.assigned_to.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            Assigned To
-                        </label>
-                        <select name="{{ form.assigned_to.name }}"
-                                id="{{ form.assigned_to.id_for_label }}"
-                                class="wallai-input bg-white text-gray-900">
-                            <option value="">Unassigned</option>
-                            {% for choice in form.assigned_to.field.queryset %}
-                                <option value="{{ choice.id }}"
-                                        {% if choice.id == form.assigned_to.value %}selected{% endif %}>
-                                    {{ choice.first_name|default:choice.username }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        {% if form.assigned_to.errors %}
-                            <div class="mt-1 text-sm text-red-600">
-                                {{ form.assigned_to.errors.0 }}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Assignment</label>
+                        <div class="flex gap-2 mb-2">
+                            <button type="button" class="edit-assignment-type-btn px-3 py-1 text-xs border rounded-md {% if not budget.splits.all %}active bg-blue-100 border-blue-500 text-blue-700{% else %}border-gray-300 text-gray-700{% endif %}" data-type="single">
+                                Single Person
+                            </button>
+                            <button type="button" class="edit-assignment-type-btn px-3 py-1 text-xs border rounded-md {% if budget.splits.all %}active bg-blue-100 border-blue-500 text-blue-700{% else %}border-gray-300 text-gray-700{% endif %}" data-type="split">
+                                Split Between Users
+                            </button>
+                        </div>
+                        <input type="hidden" name="assignment_type" id="edit-assignment_type" value="{% if budget.splits.all %}split{% else %}single{% endif %}">
+
+                        <!-- Single Assignment -->
+                        <div id="edit-single-assignment" {% if budget.splits.all %}class="hidden"{% endif %}>
+                            <select name="{{ form.assigned_to.name }}" id="{{ form.assigned_to.id_for_label }}" class="wallai-input bg-white text-gray-900">
+                                <option value="">Unassigned</option>
+                                {% for choice in form.assigned_to.field.queryset %}
+                                    <option value="{{ choice.id }}" {% if choice.id == form.assigned_to.value %}selected{% endif %}>
+                                        {{ choice.first_name|default:choice.username }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Split Assignment -->
+                        <div id="edit-split-assignment" {% if not budget.splits.all %}class="hidden"{% endif %}>
+                            <div class="space-y-3 mb-3" id="edit-split-users-container">
+                                {% for split in budget.splits.all %}
+                                    <div class="border border-gray-200 rounded-md p-3">
+                                        <div class="flex gap-3 items-start">
+                                            <div class="flex-1">
+                                                <select name="split_user_{{ forloop.counter0 }}" class="wallai-input text-sm" required>
+                                                    <option value="">Select user...</option>
+                                                    {% for choice in form.assigned_to.field.queryset %}
+                                                        <option value="{{ choice.id }}" {% if choice.id == split.user.id %}selected{% endif %}>
+                                                            {{ choice.first_name|default:choice.username }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="w-20">
+                                                <select name="split_type_{{ forloop.counter0 }}" class="wallai-input text-sm edit-split-type-select" onchange="updateEditSplitTotal()" required>
+                                                    <option value="percentage" {% if split.split_type == 'percentage' %}selected{% endif %}>%</option>
+                                                    <option value="fixed_amount" {% if split.split_type == 'fixed_amount' %}selected{% endif %}>$</option>
+                                                </select>
+                                            </div>
+                                            <div class="w-24">
+                                                <input type="number" name="split_value_{{ forloop.counter0 }}"
+                                                       class="wallai-input text-sm edit-split-value-input"
+                                                       placeholder="0" step="0.01" min="0.01"
+                                                       value="{% if split.split_type == 'percentage' %}{{ split.percentage }}{% else %}{{ split.fixed_amount }}{% endif %}"
+                                                       onchange="updateEditSplitTotal()" required>
+                                            </div>
+                                            <button type="button" class="text-red-600 hover:text-red-800 mt-2" onclick="removeEditSplitUser(this)">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <!-- Empty state if no splits exist but split mode is selected -->
+                                {% endfor %}
                             </div>
-                        {% endif %}
-                        {% if form.assigned_to.help_text %}
-                            <p class="mt-1 text-xs text-gray-500">{{ form.assigned_to.help_text }}</p>
-                        {% endif %}
+                            <div class="flex gap-2">
+                                <button type="button" class="px-3 py-1 text-xs bg-green-100 text-green-700 border border-green-300 rounded-md" onclick="addEditSplitUser()">
+                                    + Add User
+                                </button>
+                                <div class="text-xs text-gray-500 flex items-center ml-auto">
+                                    Total: <span id="edit-split-total" class="font-medium ml-1">0%</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Expected Day (if recurring) -->
@@ -317,6 +369,247 @@ document.addEventListener('alpine:init', () => {
             });
         }
     }));
+});
+
+// Category autocomplete functionality
+let suggestionsTimeout;
+let currentSuggestions = [];
+
+document.getElementById('category').addEventListener('input', function(e) {
+    const query = e.target.value.trim();
+    const suggestionsDiv = document.getElementById('suggestions');
+
+    if (query.length < 2) {
+        hideSuggestions();
+        return;
+    }
+
+    // Clear previous timeout
+    clearTimeout(suggestionsTimeout);
+
+    // Debounce the API call
+    suggestionsTimeout = setTimeout(() => {
+        fetchSuggestions(query);
+    }, 300);
+});
+
+// Handle keyboard navigation
+document.getElementById('category').addEventListener('keydown', function(e) {
+    const suggestionsDiv = document.getElementById('suggestions');
+    const suggestions = suggestionsDiv.querySelectorAll('.suggestion-item');
+
+    if (suggestions.length === 0) return;
+
+    let currentIndex = Array.from(suggestions).findIndex(item => item.classList.contains('highlighted'));
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (currentIndex < suggestions.length - 1) {
+            if (currentIndex >= 0) suggestions[currentIndex].classList.remove('highlighted');
+            suggestions[currentIndex + 1].classList.add('highlighted');
+        }
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (currentIndex > 0) {
+            suggestions[currentIndex].classList.remove('highlighted');
+            suggestions[currentIndex - 1].classList.add('highlighted');
+        }
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (currentIndex >= 0) {
+            selectSuggestion(currentSuggestions[currentIndex]);
+        }
+    } else if (e.key === 'Escape') {
+        hideSuggestions();
+    }
+});
+
+function fetchSuggestions(query) {
+    fetch(`/budgets/api/category-suggestions/?q=${encodeURIComponent(query)}&limit=10`)
+        .then(response => response.json())
+        .then(data => {
+            currentSuggestions = data.suggestions;
+            displaySuggestions(data.suggestions);
+        })
+        .catch(error => {
+            console.error('Error fetching suggestions:', error);
+        });
+}
+
+function displaySuggestions(suggestions) {
+    const suggestionsDiv = document.getElementById('suggestions');
+
+    if (suggestions.length === 0) {
+        hideSuggestions();
+        return;
+    }
+
+    const suggestionsHtml = suggestions.map(suggestion => `
+        <div class="suggestion-item px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+             onclick="selectSuggestion(${JSON.stringify(suggestion).replace(/"/g, '&quot;')})">
+            <div class="flex justify-between items-center">
+                <span class="text-gray-900">${suggestion.name}</span>
+                <div class="flex items-center space-x-2">
+                    ${suggestion.is_popular ? '<span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">Popular</span>' : ''}
+                    <span class="text-xs text-gray-500 capitalize">${suggestion.category_type}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    suggestionsDiv.innerHTML = suggestionsHtml;
+    suggestionsDiv.classList.remove('hidden');
+}
+
+function selectSuggestion(suggestion) {
+    document.getElementById('category').value = suggestion.name;
+    document.getElementById('category_id').value = ''; // Clear existing ID for new category
+    hideSuggestions();
+}
+
+function hideSuggestions() {
+    document.getElementById('suggestions').classList.add('hidden');
+}
+
+// Hide suggestions when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.relative')) {
+        hideSuggestions();
+    }
+});
+
+// Show popular suggestions when focusing empty field
+document.getElementById('category').addEventListener('focus', function(e) {
+    if (e.target.value.trim() === '') {
+        fetch('/budgets/api/category-suggestions/?limit=8')
+            .then(response => response.json())
+            .then(data => {
+                currentSuggestions = data.suggestions;
+                displaySuggestions(data.suggestions);
+            });
+    }
+});
+
+// Edit page assignment type functionality
+document.querySelectorAll('.edit-assignment-type-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Update button states
+        document.querySelectorAll('.edit-assignment-type-btn').forEach(b => {
+            b.classList.remove('active', 'bg-blue-100', 'border-blue-500', 'text-blue-700');
+            b.classList.add('border-gray-300', 'text-gray-700');
+        });
+        this.classList.add('active', 'bg-blue-100', 'border-blue-500', 'text-blue-700');
+
+        const type = this.dataset.type;
+        document.getElementById('edit-assignment_type').value = type;
+
+        // Show/hide assignment sections
+        if (type === 'single') {
+            document.getElementById('edit-single-assignment').classList.remove('hidden');
+            document.getElementById('edit-split-assignment').classList.add('hidden');
+        } else {
+            document.getElementById('edit-single-assignment').classList.add('hidden');
+            document.getElementById('edit-split-assignment').classList.remove('hidden');
+            // Initialize with one split user if empty
+            if (document.getElementById('edit-split-users-container').children.length === 0) {
+                addEditSplitUser();
+            }
+            updateEditSplitTotal();
+        }
+    });
+});
+
+let editSplitUserCounter = {{ budget.splits.count|default:0 }};
+
+function addEditSplitUser() {
+    const container = document.getElementById('edit-split-users-container');
+    const userIndex = editSplitUserCounter++;
+
+    const userDiv = document.createElement('div');
+    userDiv.className = 'border border-gray-200 rounded-md p-3';
+    userDiv.innerHTML = `
+        <div class="flex gap-3 items-start">
+            <div class="flex-1">
+                <select name="split_user_${userIndex}" class="wallai-input text-sm" required>
+                    <option value="">Select user...</option>
+                    {% for choice in form.assigned_to.field.queryset %}
+                        <option value="{{ choice.id }}">{{ choice.first_name|default:choice.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="w-20">
+                <select name="split_type_${userIndex}" class="wallai-input text-sm edit-split-type-select" onchange="updateEditSplitTotal()" required>
+                    <option value="percentage">%</option>
+                    <option value="fixed_amount">$</option>
+                </select>
+            </div>
+            <div class="w-24">
+                <input type="number" name="split_value_${userIndex}"
+                       class="wallai-input text-sm edit-split-value-input"
+                       placeholder="0" step="0.01" min="0.01"
+                       onchange="updateEditSplitTotal()" required>
+            </div>
+            <button type="button" class="text-red-600 hover:text-red-800 mt-2" onclick="removeEditSplitUser(this)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </button>
+        </div>
+    `;
+
+    container.appendChild(userDiv);
+    updateEditSplitTotal();
+}
+
+function removeEditSplitUser(button) {
+    const userDiv = button.closest('.border');
+    userDiv.remove();
+    updateEditSplitTotal();
+}
+
+function updateEditSplitTotal() {
+    const splitInputs = document.querySelectorAll('.edit-split-value-input');
+    const splitTypeSelects = document.querySelectorAll('.edit-split-type-select');
+    const totalAmountInput = document.getElementById('{{ form.amount.id_for_label }}');
+    const totalAmount = parseFloat(totalAmountInput.value) || 0;
+
+    let percentageTotal = 0;
+    let fixedAmountTotal = 0;
+
+    splitInputs.forEach((input, index) => {
+        const value = parseFloat(input.value) || 0;
+        const type = splitTypeSelects[index].value;
+
+        if (type === 'percentage') {
+            percentageTotal += value;
+        } else {
+            fixedAmountTotal += value;
+        }
+    });
+
+    // Calculate remaining percentage for fixed amounts
+    const fixedPercentage = totalAmount > 0 ? (fixedAmountTotal / totalAmount) * 100 : 0;
+    const totalPercentage = percentageTotal + fixedPercentage;
+
+    const totalSpan = document.getElementById('edit-split-total');
+    totalSpan.textContent = totalPercentage.toFixed(1) + '%';
+
+    // Color code based on total
+    if (Math.abs(totalPercentage - 100) < 0.1) {
+        totalSpan.className = 'font-medium ml-1 text-green-600';
+    } else if (totalPercentage > 100) {
+        totalSpan.className = 'font-medium ml-1 text-red-600';
+    } else {
+        totalSpan.className = 'font-medium ml-1 text-orange-600';
+    }
+}
+
+// Update split total when amount changes
+document.getElementById('{{ form.amount.id_for_label }}').addEventListener('input', updateEditSplitTotal);
+
+// Initialize split total on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateEditSplitTotal();
 });
 </script>
 {% endblock %}

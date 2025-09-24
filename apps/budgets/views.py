@@ -11,7 +11,7 @@ from django.views.decorators.http import require_http_methods
 from decimal import Decimal
 import json
 
-from .models import Budget, BudgetCategory, BudgetTemplate
+from .models import Budget, BudgetCategory, BudgetTemplate, CategorySuggestion, PaymentMethod, BudgetSplit
 from .forms import BudgetForm, BudgetCategoryForm, MonthlyBudgetForm, BudgetBulkEditForm, BudgetCopyForm, SmartBudgetCreationForm, BudgetTemplateForm
 from spaces.models import Space, SpaceMember
 from spaces.utils import SpaceContextManager
@@ -217,7 +217,7 @@ def budget_create_from_scratch(request):
         space=current_space,
         month_period=month_period,
         is_active=True
-    ).select_related('category', 'assigned_to').order_by('category__name')
+    ).select_related('category', 'assigned_to').prefetch_related('splits__user').order_by('category__name')
 
     # Calculate total budget
     total_budget = current_budget_items.aggregate(
@@ -230,20 +230,76 @@ def budget_create_from_scratch(request):
         spacemember__is_active=True
     ).distinct()
 
+    # Get payment methods for this space
+    payment_methods = PaymentMethod.objects.filter(
+        space=current_space,
+        is_active=True
+    ).order_by('name')
+
     if request.method == 'POST':
         action = request.POST.get('action')
 
         if action == 'add_item':
             # Add individual budget item
-            category_id = request.POST.get('category')
+            category_name = request.POST.get('category_name', '').strip()
             amount = request.POST.get('amount')
             assigned_to_id = request.POST.get('assigned_to')
+            assignment_type = request.POST.get('assignment_type', 'single')
             is_estimated = request.POST.get('is_estimated') == 'on'
             is_recurring = request.POST.get('is_recurring') == 'on'
 
             try:
-                category = BudgetCategory.objects.get(id=category_id)
-                assigned_to = User.objects.get(id=assigned_to_id) if assigned_to_id else None
+                if not category_name:
+                    raise ValueError("Category name is required")
+
+                # Try to find existing category first
+                category = BudgetCategory.objects.filter(
+                    models.Q(name__iexact=category_name, space=current_space) |
+                    models.Q(name__iexact=category_name, space__isnull=True)
+                ).first()
+
+                # If category doesn't exist, create a new custom one
+                if not category:
+                    category = BudgetCategory.objects.create(
+                        name=category_name,
+                        space=current_space,
+                        category_type='variable'  # Default to variable
+                    )
+
+                # Increment usage count for suggestion if it exists
+                suggestion = CategorySuggestion.objects.filter(name__iexact=category_name).first()
+                if suggestion:
+                    suggestion.increment_usage()
+
+                # Handle payment method
+                payment_method_id = request.POST.get('payment_method')
+                payment_method = PaymentMethod.objects.get(id=payment_method_id) if payment_method_id else None
+
+                # Handle payment dates
+                timing_type = request.POST.get('timing_type', 'flexible')
+                due_date = None
+                range_start = None
+                range_end = None
+
+                if timing_type == 'exact':
+                    due_date_str = request.POST.get('due_date')
+                    if due_date_str:
+                        from datetime import datetime
+                        due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                elif timing_type == 'range':
+                    range_start_str = request.POST.get('range_start')
+                    range_end_str = request.POST.get('range_end')
+                    if range_start_str:
+                        range_start = datetime.strptime(range_start_str, '%Y-%m-%d').date()
+                    if range_end_str:
+                        range_end = datetime.strptime(range_end_str, '%Y-%m-%d').date()
+                elif timing_type == 'biweekly':
+                    biweekly_first_str = request.POST.get('biweekly_first')
+                    biweekly_second_str = request.POST.get('biweekly_second')
+                    if biweekly_first_str:
+                        due_date = datetime.strptime(biweekly_first_str, '%Y-%m-%d').date()
+                    if biweekly_second_str:
+                        range_end = datetime.strptime(biweekly_second_str, '%Y-%m-%d').date()
 
                 # Check if budget item already exists
                 existing = Budget.objects.filter(
@@ -256,17 +312,99 @@ def budget_create_from_scratch(request):
                 if existing:
                     messages.error(request, f'Budget item for {category.name} already exists for this month.')
                 else:
-                    Budget.objects.create(
-                        space=current_space,
-                        category=category,
-                        amount=Decimal(amount),
-                        assigned_to=assigned_to,
-                        month_period=month_period,
-                        is_estimated=is_estimated,
-                        is_recurring=is_recurring,
-                        created_by=request.user
-                    )
-                    messages.success(request, f'Added {category.name} to your budget.')
+                    # Set recurrence settings for biweekly
+                    recurrence_type = 'biweekly' if timing_type == 'biweekly' else None
+                    is_recurring_final = is_recurring or (timing_type == 'biweekly')
+
+                    # Handle single vs split assignment
+                    if assignment_type == 'single':
+                        assigned_to = User.objects.get(id=assigned_to_id) if assigned_to_id else None
+
+                        budget = Budget.objects.create(
+                            space=current_space,
+                            category=category,
+                            amount=Decimal(amount),
+                            assigned_to=assigned_to,
+                            month_period=month_period,
+                            is_estimated=is_estimated,
+                            is_recurring=is_recurring_final,
+                            created_by=request.user,
+                            payment_method=payment_method,
+                            timing_type=timing_type,
+                            due_date=due_date,
+                            range_start=range_start,
+                            range_end=range_end,
+                            recurrence_type=recurrence_type
+                        )
+                        messages.success(request, f'Added {category.name} to your budget.')
+
+                    else:  # split assignment
+                        # Create budget without specific assignment
+                        budget = Budget.objects.create(
+                            space=current_space,
+                            category=category,
+                            amount=Decimal(amount),
+                            assigned_to=None,  # No single assignee for splits
+                            month_period=month_period,
+                            is_estimated=is_estimated,
+                            is_recurring=is_recurring_final,
+                            created_by=request.user,
+                            payment_method=payment_method,
+                            timing_type=timing_type,
+                            due_date=due_date,
+                            range_start=range_start,
+                            range_end=range_end,
+                            recurrence_type=recurrence_type
+                        )
+
+                        # Process split assignments
+                        total_amount = Decimal(amount)
+                        split_created = False
+
+                        # Find all split user fields
+                        split_fields = {}
+                        for key, value in request.POST.items():
+                            if key.startswith('split_user_') and value:
+                                index = key.split('_')[-1]
+                                split_fields[index] = {
+                                    'user_id': value,
+                                    'type': request.POST.get(f'split_type_{index}'),
+                                    'value': request.POST.get(f'split_value_{index}')
+                                }
+
+                        # Create BudgetSplit objects
+                        for index, split_data in split_fields.items():
+                            try:
+                                user = User.objects.get(id=split_data['user_id'])
+                                split_type = split_data['type']
+                                split_value = Decimal(split_data['value'])
+
+                                # Calculate amount based on type
+                                if split_type == 'percentage':
+                                    calculated_amount = (total_amount * split_value) / 100
+                                else:  # fixed_amount
+                                    calculated_amount = split_value
+
+                                from .models import BudgetSplit
+                                BudgetSplit.objects.create(
+                                    budget=budget,
+                                    user=user,
+                                    split_type=split_type,
+                                    percentage=split_value if split_type == 'percentage' else None,
+                                    fixed_amount=split_value if split_type == 'fixed_amount' else None,
+                                    calculated_amount=calculated_amount
+                                )
+                                split_created = True
+
+                            except (User.DoesNotExist, ValueError) as e:
+                                messages.warning(request, f'Error processing split for index {index}: {e}')
+
+                        if split_created:
+                            messages.success(request, f'Added {category.name} to your budget with expense splits.')
+                        else:
+                            # Delete budget if no splits were created
+                            budget.delete()
+                            messages.error(request, 'No valid splits were provided. Budget item not created.')
 
             except (BudgetCategory.DoesNotExist, ValueError) as e:
                 messages.error(request, 'Invalid category or amount.')
@@ -285,6 +423,78 @@ def budget_create_from_scratch(request):
                 messages.success(request, f'Removed {budget_name} from your budget.')
             except Budget.DoesNotExist:
                 messages.error(request, 'Budget item not found.')
+
+        elif action == 'edit_item':
+            # Edit existing budget item
+            budget_id = request.POST.get('budget_id')
+            try:
+                budget = Budget.objects.get(
+                    id=budget_id,
+                    space=current_space,
+                    month_period=month_period
+                )
+
+                # Update basic fields
+                amount = request.POST.get('amount')
+                assigned_to_id = request.POST.get('assigned_to')
+                is_estimated = request.POST.get('is_estimated') == 'on'
+                is_recurring = request.POST.get('is_recurring') == 'on'
+
+                # Handle payment method
+                payment_method_id = request.POST.get('payment_method')
+                payment_method = PaymentMethod.objects.get(id=payment_method_id) if payment_method_id else None
+
+                # Handle payment dates
+                timing_type = request.POST.get('timing_type', 'flexible')
+                due_date = None
+                range_start = None
+                range_end = None
+
+                if timing_type == 'exact':
+                    due_date_str = request.POST.get('due_date')
+                    if due_date_str:
+                        from datetime import datetime
+                        due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                elif timing_type == 'range':
+                    range_start_str = request.POST.get('range_start')
+                    range_end_str = request.POST.get('range_end')
+                    if range_start_str:
+                        range_start = datetime.strptime(range_start_str, '%Y-%m-%d').date()
+                    if range_end_str:
+                        range_end = datetime.strptime(range_end_str, '%Y-%m-%d').date()
+                elif timing_type == 'biweekly':
+                    biweekly_first_str = request.POST.get('biweekly_first')
+                    biweekly_second_str = request.POST.get('biweekly_second')
+                    if biweekly_first_str:
+                        due_date = datetime.strptime(biweekly_first_str, '%Y-%m-%d').date()
+                    if biweekly_second_str:
+                        range_end = datetime.strptime(biweekly_second_str, '%Y-%m-%d').date()
+
+                # Set recurrence settings
+                recurrence_type = 'biweekly' if timing_type == 'biweekly' else budget.recurrence_type
+                is_recurring_final = is_recurring or (timing_type == 'biweekly')
+
+                assigned_to = User.objects.get(id=assigned_to_id) if assigned_to_id else None
+
+                # Update budget
+                budget.amount = Decimal(amount)
+                budget.assigned_to = assigned_to
+                budget.is_estimated = is_estimated
+                budget.is_recurring = is_recurring_final
+                budget.payment_method = payment_method
+                budget.timing_type = timing_type
+                budget.due_date = due_date
+                budget.range_start = range_start
+                budget.range_end = range_end
+                budget.recurrence_type = recurrence_type
+                budget.save()
+
+                messages.success(request, f'Updated {budget.category.name} successfully.')
+
+            except Budget.DoesNotExist:
+                messages.error(request, 'Budget item not found.')
+            except (ValueError, User.DoesNotExist, PaymentMethod.DoesNotExist) as e:
+                messages.error(request, 'Invalid data provided.')
 
         elif action in ['add_essentials', 'add_savings', 'add_lifestyle']:
             # Add template categories
@@ -324,7 +534,7 @@ def budget_create_from_scratch(request):
             else:
                 messages.info(request, 'All template categories already exist in your budget.')
 
-        return redirect(f'?month={month_period}')
+        return redirect('budgets:create_from_scratch')
 
     return render(request, 'budgets/create_from_scratch.html', {
         'current_space': current_space,
@@ -333,6 +543,7 @@ def budget_create_from_scratch(request):
         'current_budget_items': current_budget_items,
         'total_budget': total_budget,
         'space_members': space_members,
+        'payment_methods': payment_methods,
     })
 
 
@@ -340,9 +551,39 @@ def budget_create_from_scratch(request):
 def budget_edit(request, budget_id):
     """Edit individual budget"""
     current_space = SpaceContextManager.get_current_space(request)
-    budget = get_object_or_404(Budget, id=budget_id, space=current_space, is_active=True)
+    budget = get_object_or_404(
+        Budget.objects.prefetch_related('splits__user'),
+        id=budget_id,
+        space=current_space,
+        is_active=True
+    )
 
     if request.method == 'POST':
+        # Handle category name (autocomplete functionality)
+        category_name = request.POST.get('category_name', '').strip()
+        if category_name:
+            # Try to find existing category first
+            category = BudgetCategory.objects.filter(
+                models.Q(name__iexact=category_name, space=current_space) |
+                models.Q(name__iexact=category_name, space__isnull=True)
+            ).first()
+
+            # If category doesn't exist, create a new one
+            if not category:
+                category = BudgetCategory.objects.create(
+                    name=category_name,
+                    space=current_space,
+                    category_type='variable'  # Default to variable
+                )
+
+            # Increment usage count for suggestion if it exists
+            suggestion = CategorySuggestion.objects.filter(name__iexact=category_name).first()
+            if suggestion:
+                suggestion.increment_usage()
+
+            # Update the budget's category
+            budget.category = category
+
         form = BudgetForm(
             request.POST,
             instance=budget,
@@ -351,7 +592,70 @@ def budget_edit(request, budget_id):
             month_period=budget.month_period
         )
         if form.is_valid():
-            budget = form.save()
+            # Handle assignment type
+            assignment_type = request.POST.get('assignment_type', 'single')
+
+            if assignment_type == 'single':
+                # Standard form save for single assignment
+                budget = form.save()
+                # Clear any existing splits
+                budget.splits.all().delete()
+
+            else:  # split assignment
+                # Save budget but clear assigned_to for splits
+                budget = form.save(commit=False)
+                budget.assigned_to = None
+                budget.save()
+
+                # Clear existing splits
+                budget.splits.all().delete()
+
+                # Process new split assignments
+                total_amount = budget.amount
+                split_created = False
+
+                # Find all split user fields
+                split_fields = {}
+                for key, value in request.POST.items():
+                    if key.startswith('split_user_') and value:
+                        index = key.split('_')[-1]
+                        split_fields[index] = {
+                            'user_id': value,
+                            'type': request.POST.get(f'split_type_{index}'),
+                            'value': request.POST.get(f'split_value_{index}')
+                        }
+
+                # Create BudgetSplit objects
+                for index, split_data in split_fields.items():
+                    try:
+                        user = User.objects.get(id=split_data['user_id'])
+                        split_type = split_data['type']
+                        split_value = Decimal(split_data['value'])
+
+                        # Calculate amount based on type
+                        if split_type == 'percentage':
+                            calculated_amount = (total_amount * split_value) / 100
+                        else:  # fixed_amount
+                            calculated_amount = split_value
+
+                        from .models import BudgetSplit
+                        BudgetSplit.objects.create(
+                            budget=budget,
+                            user=user,
+                            split_type=split_type,
+                            percentage=split_value if split_type == 'percentage' else None,
+                            fixed_amount=split_value if split_type == 'fixed_amount' else None,
+                            calculated_amount=calculated_amount
+                        )
+                        split_created = True
+
+                    except (User.DoesNotExist, ValueError) as e:
+                        messages.warning(request, f'Error processing split for index {index}: {e}')
+
+                if not split_created:
+                    messages.error(request, 'No valid splits were provided. Please add at least one valid split.')
+                    return render(request, 'budgets/edit.html', {'form': form, 'budget': budget})
+
             messages.success(request, f'Budget for {budget.category.name} updated successfully.')
             return redirect('budgets:home')
     else:
@@ -820,3 +1124,328 @@ def template_delete(request, template_id):
         'current_space': current_space,
         'template': template,
     })
+
+
+# NEW TEMPLATE SYSTEM VIEWS
+
+@login_required
+def budget_create_method_selection(request):
+    """Budget creation method selection: From Scratch vs Templates"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        messages.error(request, 'Please select a space to create budgets.')
+        return redirect('spaces:list')
+
+    # Get current month
+    current_month = timezone.now().strftime('%Y-%m')
+    month_period = request.GET.get('month', current_month)
+
+    # Get template counts for display
+    framework_templates = BudgetTemplate.get_frameworks().filter(is_system_default=True)
+    situation_templates = BudgetTemplate.get_situations().filter(is_system_default=True)
+
+    return render(request, 'budgets/create_method_selection.html', {
+        'current_space': current_space,
+        'month_period': month_period,
+        'framework_count': framework_templates.count(),
+        'situation_count': situation_templates.count(),
+        'total_templates': framework_templates.count() + situation_templates.count(),
+    })
+
+
+@login_required
+def template_gallery(request):
+    """Template gallery showing frameworks and situations"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        messages.error(request, 'Please select a space to browse templates.')
+        return redirect('spaces:list')
+
+    # Get current month for template creation
+    current_month = timezone.now().strftime('%Y-%m')
+    month_period = request.GET.get('month', current_month)
+    filter_type = request.GET.get('filter')  # framework or situation
+
+    # Get templates based on filter
+    framework_templates = []
+    situation_templates = []
+
+    if filter_type == 'framework':
+        framework_templates = BudgetTemplate.get_frameworks().filter(is_system_default=True)
+    elif filter_type == 'situation':
+        situation_templates = BudgetTemplate.get_situations().filter(is_system_default=True)
+    else:
+        # Show both if no filter
+        framework_templates = BudgetTemplate.get_frameworks().filter(is_system_default=True)
+        situation_templates = BudgetTemplate.get_situations().filter(is_system_default=True)
+
+    return render(request, 'budgets/template_gallery.html', {
+        'current_space': current_space,
+        'month_period': month_period,
+        'framework_templates': framework_templates,
+        'situation_templates': situation_templates,
+        'filter_type': filter_type,
+    })
+
+
+@login_required
+def template_detail(request, template_id):
+    """Show template details with preview"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        messages.error(request, 'Please select a space.')
+        return redirect('spaces:list')
+
+    template = get_object_or_404(BudgetTemplate, id=template_id)
+
+    # Get current month
+    current_month = timezone.now().strftime('%Y-%m')
+    month_period = request.GET.get('month', current_month)
+
+    # Get custom total amount if provided
+    custom_total = request.GET.get('total')
+    if custom_total:
+        try:
+            total_amount = Decimal(custom_total)
+        except (ValueError, TypeError):
+            total_amount = template.default_total_amount
+    else:
+        total_amount = template.default_total_amount
+
+    # Calculate categories and sections for preview
+    calculated_categories = template.get_calculated_categories(total_amount)
+    sections_summary = template.get_sections_summary(total_amount)
+
+    return render(request, 'budgets/template_detail.html', {
+        'current_space': current_space,
+        'template': template,
+        'month_period': month_period,
+        'total_amount': total_amount,
+        'calculated_categories': calculated_categories,
+        'sections_summary': sections_summary,
+    })
+
+
+@login_required
+def budget_create_from_template(request, template_id):
+    """Create budget from selected template"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        messages.error(request, 'Please select a space to create budgets.')
+        return redirect('spaces:list')
+
+    template = get_object_or_404(BudgetTemplate, id=template_id)
+
+    # Get current month
+    current_month = timezone.now().strftime('%Y-%m')
+    month_period = request.GET.get('month', current_month)
+
+    if request.method == 'POST':
+        # Get form data
+        total_amount = Decimal(request.POST.get('total_amount', template.default_total_amount))
+
+        # Create budgets based on template
+        budgets_created = []
+        errors = []
+
+        # Get system categories for matching
+        system_categories = {cat.name: cat for cat in BudgetCategory.objects.filter(is_system_default=True)}
+
+        for category_name, category_data in template.category_data.items():
+            # Find matching system category
+            category = system_categories.get(category_name)
+            if not category:
+                errors.append(f'Category "{category_name}" not found')
+                continue
+
+            # Calculate amount based on total
+            amount = (total_amount * Decimal(category_data['percentage']) / 100).quantize(Decimal('0.01'))
+
+            # Check if budget already exists for this category and month
+            existing_budget = Budget.objects.filter(
+                space=current_space,
+                category=category,
+                month_period=month_period
+            ).first()
+
+            if existing_budget:
+                errors.append(f'Budget for {category_name} already exists for {month_period}')
+                continue
+
+            # Create the budget
+            budget = Budget.objects.create(
+                space=current_space,
+                category=category,
+                amount=amount,
+                month_period=month_period,
+                created_by=request.user,
+                template_used=template,
+                is_custom=False
+            )
+            budgets_created.append(budget)
+
+        if budgets_created:
+            # Increment template usage
+            template.increment_usage()
+
+            messages.success(
+                request,
+                f'Successfully created {len(budgets_created)} budget categories using "{template.name}" template.'
+            )
+            if errors:
+                messages.warning(request, f'Some categories had issues: {", ".join(errors)}')
+        else:
+            messages.error(request, f'No budgets created. Errors: {", ".join(errors) if errors else "Unknown error"}')
+
+        return redirect('budgets:month_view', month_period=month_period)
+
+    # GET request - show template customization form
+    calculated_categories = template.get_calculated_categories()
+    sections_summary = template.get_sections_summary()
+
+    return render(request, 'budgets/create_from_template.html', {
+        'current_space': current_space,
+        'template': template,
+        'month_period': month_period,
+        'calculated_categories': calculated_categories,
+        'sections_summary': sections_summary,
+    })
+
+
+@login_required
+def category_suggestions_api(request):
+    """API endpoint for category autocomplete suggestions"""
+    query = request.GET.get('q', '').strip()
+    limit = min(int(request.GET.get('limit', 10)), 20)  # Max 20 suggestions
+
+    suggestions = CategorySuggestion.get_suggestions(query, limit)
+
+    data = []
+    for suggestion in suggestions:
+        data.append({
+            'name': suggestion.name,
+            'category_type': suggestion.category_type,
+            'usage_count': suggestion.usage_count,
+            'is_popular': suggestion.is_popular,
+        })
+
+    return JsonResponse({
+        'suggestions': data,
+        'query': query,
+        'count': len(data),
+    })
+
+
+# Payment Methods Management Views
+
+@login_required
+def payment_methods_list(request):
+    """List all payment methods for the current space"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return redirect('spaces:list')
+
+    payment_methods = PaymentMethod.objects.filter(
+        space=current_space,
+        is_active=True
+    ).order_by('name')
+
+    return render(request, 'budgets/payment_methods.html', {
+        'current_space': current_space,
+        'payment_methods': payment_methods,
+    })
+
+
+@login_required
+def payment_method_create(request):
+    """Create a new payment method"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return redirect('spaces:list')
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        payment_type = request.POST.get('payment_type', 'debit')
+
+        if name:
+            try:
+                PaymentMethod.objects.create(
+                    name=name,
+                    payment_type=payment_type,
+                    space=current_space
+                )
+                messages.success(request, f'Payment method "{name}" created successfully.')
+                return redirect('budgets:payment_methods')
+            except Exception as e:
+                messages.error(request, 'Error creating payment method. Name might already exist.')
+        else:
+            messages.error(request, 'Payment method name is required.')
+
+    return render(request, 'budgets/payment_method_form.html', {
+        'current_space': current_space,
+        'title': 'Create Payment Method',
+        'payment_types': PaymentMethod.TYPE_CHOICES,
+    })
+
+
+@login_required
+def payment_method_edit(request, method_id):
+    """Edit an existing payment method"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return redirect('spaces:list')
+
+    try:
+        payment_method = PaymentMethod.objects.get(id=method_id, space=current_space)
+    except PaymentMethod.DoesNotExist:
+        messages.error(request, 'Payment method not found.')
+        return redirect('budgets:payment_methods')
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        payment_type = request.POST.get('payment_type', 'debit')
+
+        if name:
+            try:
+                payment_method.name = name
+                payment_method.payment_type = payment_type
+                payment_method.save()
+                messages.success(request, f'Payment method "{name}" updated successfully.')
+                return redirect('budgets:payment_methods')
+            except Exception as e:
+                messages.error(request, 'Error updating payment method. Name might already exist.')
+        else:
+            messages.error(request, 'Payment method name is required.')
+
+    return render(request, 'budgets/payment_method_form.html', {
+        'current_space': current_space,
+        'payment_method': payment_method,
+        'title': 'Edit Payment Method',
+        'payment_types': PaymentMethod.TYPE_CHOICES,
+    })
+
+
+@login_required
+def payment_method_delete(request, method_id):
+    """Delete a payment method"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return redirect('spaces:list')
+
+    try:
+        payment_method = PaymentMethod.objects.get(id=method_id, space=current_space)
+
+        if request.method == 'POST':
+            payment_method.is_active = False
+            payment_method.save()
+            messages.success(request, f'Payment method "{payment_method.name}" deleted successfully.')
+            return redirect('budgets:payment_methods')
+
+        return render(request, 'budgets/payment_method_delete.html', {
+            'current_space': current_space,
+            'payment_method': payment_method,
+        })
+
+    except PaymentMethod.DoesNotExist:
+        messages.error(request, 'Payment method not found.')
+        return redirect('budgets:payment_methods')

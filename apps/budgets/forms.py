@@ -568,49 +568,40 @@ class BudgetTemplateForm(forms.ModelForm):
     class Meta:
         model = BudgetTemplate
         fields = [
-            'name', 'description', 'template_type', 'default_category',
-            'suggested_amount', 'default_timing_type', 'default_reminder_days',
-            'default_time_of_day', 'default_is_recurring', 'default_recurrence_pattern'
+            'name', 'description', 'template_type', 'framework_type', 'situation_type',
+            'default_total_amount', 'color_scheme', 'icon'
         ]
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'wallai-input',
-                'placeholder': 'Template name (e.g., Monthly Rent)',
+                'placeholder': 'Template name (e.g., 50/30/20 Rule)',
                 'maxlength': '100'
             }),
             'description': forms.Textarea(attrs={
                 'class': 'wallai-input',
                 'placeholder': 'Description of when to use this template',
                 'rows': 3,
-                'maxlength': '300'
+                'maxlength': '500'
             }),
             'template_type': forms.Select(attrs={
                 'class': 'wallai-input'
             }),
-            'default_category': forms.Select(attrs={
+            'framework_type': forms.Select(attrs={
                 'class': 'wallai-input'
             }),
-            'suggested_amount': forms.NumberInput(attrs={
+            'situation_type': forms.Select(attrs={
+                'class': 'wallai-input'
+            }),
+            'default_total_amount': forms.NumberInput(attrs={
                 'class': 'wallai-input',
-                'placeholder': '0.00',
+                'placeholder': '3650.00',
                 'step': '0.01',
                 'min': '0.01'
             }),
-            'default_timing_type': forms.Select(attrs={
+            'color_scheme': forms.TextInput(attrs={
                 'class': 'wallai-input'
             }),
-            'default_reminder_days': forms.NumberInput(attrs={
-                'class': 'wallai-input',
-                'min': '0',
-                'max': '30'
-            }),
-            'default_time_of_day': forms.Select(attrs={
-                'class': 'wallai-input'
-            }),
-            'default_is_recurring': forms.CheckboxInput(attrs={
-                'class': 'rounded border-gray-300 text-wallai-green focus:ring-wallai-green'
-            }),
-            'default_recurrence_pattern': forms.Select(attrs={
+            'icon': forms.TextInput(attrs={
                 'class': 'wallai-input'
             })
         }
@@ -620,15 +611,6 @@ class BudgetTemplateForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        # Filter categories for the space
-        if self.space:
-            from django.db import models
-            categories = BudgetCategory.objects.filter(
-                models.Q(is_system_default=True) | models.Q(space=self.space),
-                is_active=True
-            ).order_by('is_system_default', 'name')
-            self.fields['default_category'].queryset = categories
-
     def save(self, commit=True):
         """Save template with space and user information"""
         template = super().save(commit=False)
@@ -636,7 +618,6 @@ class BudgetTemplateForm(forms.ModelForm):
             template.space = self.space
         if self.user:
             template.created_by = self.user
-        template.template_type = 'custom'  # Mark as custom template
 
         if commit:
             template.save()
