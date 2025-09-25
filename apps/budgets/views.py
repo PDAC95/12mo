@@ -51,6 +51,25 @@ def budget_home(request):
         is_active=True
     ).values_list('month_period', flat=True).distinct().order_by('-month_period')[:6]
 
+    # Get available categories for adding new budget categories
+    used_category_ids = current_budgets.values_list('category_id', flat=True)
+    available_categories = BudgetCategory.objects.filter(
+        models.Q(is_system_default=True) | models.Q(space=current_space),
+        is_active=True
+    ).exclude(id__in=used_category_ids).order_by('name')
+
+    # Get space members for assignment
+    space_members = User.objects.filter(
+        spacemember__space=current_space,
+        spacemember__is_active=True
+    ).distinct()
+
+    # Get available payment methods
+    available_payment_methods = PaymentMethod.objects.filter(
+        space=current_space,
+        is_active=True
+    ).order_by('name')
+
     context = {
         'current_space': current_space,
         'current_month': current_month,
@@ -60,9 +79,188 @@ def budget_home(request):
         'remaining': remaining,
         'recent_months': recent_months,
         'has_budgets': current_budgets.exists(),
+        'available_categories': available_categories,
+        'available_payment_methods': available_payment_methods,
+        'space_members': space_members,
+        'payment_methods': available_payment_methods,  # Alias for component compatibility
     }
 
     return render(request, 'budgets/home.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def budget_edit_api(request):
+    """API endpoint to handle budget category editing"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return JsonResponse({'success': False, 'error': 'Please select a space'}, status=400)
+
+    try:
+        month_period = request.POST.get('month_period')
+        if not month_period:
+            return JsonResponse({'success': False, 'error': 'Month period is required'}, status=400)
+
+        with transaction.atomic():
+            # Handle existing budget updates and deletions
+            for key, value in request.POST.items():
+                if key.startswith('amount_'):
+                    budget_id = key.split('_')[1]
+                    amount = Decimal(value)
+
+                    # Check if this budget should be deleted
+                    delete_key = f'delete_budget_{budget_id}'
+                    if delete_key in request.POST:
+                        # Delete the budget
+                        Budget.objects.filter(
+                            id=budget_id,
+                            space=current_space,
+                            month_period=month_period
+                        ).delete()
+                    else:
+                        # Update the budget amount
+                        Budget.objects.filter(
+                            id=budget_id,
+                            space=current_space,
+                            month_period=month_period
+                        ).update(amount=amount)
+
+            # Handle new category additions
+            new_data = {}
+
+            # Collect all new category data
+            for key, value in request.POST.items():
+                if key.startswith('new_'):
+                    parts = key.split('_')
+                    if len(parts) >= 3:
+                        field_type = '_'.join(parts[1:-1])  # e.g., 'category', 'amount', 'assigned_to'
+                        counter = parts[-1]
+
+                        if counter not in new_data:
+                            new_data[counter] = {}
+                        new_data[counter][field_type] = value
+
+            # Process each new budget item
+            for counter, data in new_data.items():
+                if 'category' in data and 'amount' in data:
+                    category_name = data.get('category', '').strip()
+                    try:
+                        amount = Decimal(data.get('amount', '0'))
+                    except:
+                        continue
+
+                    if category_name and amount > 0:
+                        # Try to find existing category first
+                        category = BudgetCategory.objects.filter(
+                            models.Q(name__iexact=category_name),
+                            models.Q(space=current_space) | models.Q(is_system_default=True)
+                        ).first()
+
+                        # If category doesn't exist, create it
+                        if not category:
+                            category = BudgetCategory.objects.create(
+                                name=category_name,
+                                space=current_space,
+                                category_type='custom',
+                                created_by=request.user
+                            )
+
+                        # Check if this category already exists for this month
+                        if not Budget.objects.filter(
+                            space=current_space,
+                            category=category,
+                            month_period=month_period
+                        ).exists():
+                            # Get assigned user
+                            assigned_to = None
+                            if data.get('assigned_to'):
+                                try:
+                                    assigned_to = User.objects.get(id=data.get('assigned_to'))
+                                except User.DoesNotExist:
+                                    pass
+
+                            # Get payment method
+                            payment_method = None
+                            if data.get('payment_method'):
+                                try:
+                                    payment_method = PaymentMethod.objects.get(id=data.get('payment_method'))
+                                except PaymentMethod.DoesNotExist:
+                                    pass
+
+                            # Parse date
+                            due_date = None
+                            if data.get('due_date'):
+                                try:
+                                    from datetime import datetime
+                                    due_date = datetime.strptime(data.get('due_date'), '%Y-%m-%d').date()
+                                except:
+                                    pass
+
+                            # Create budget
+                            budget = Budget.objects.create(
+                                space=current_space,
+                                category=category,
+                                amount=amount,
+                                month_period=month_period,
+                                created_by=request.user,
+                                assigned_to=assigned_to,
+                                payment_method=payment_method,
+                                due_date=due_date,
+                                is_estimated=data.get('is_estimated') == 'true',
+                                is_recurring=data.get('is_recurring') == 'true',
+                                notes=data.get('notes', '')
+                            )
+
+                            # Handle splits if enabled
+                            if data.get('enable_split') == 'true':
+                                # Process split data
+                                split_data = {}
+                                for key, value in request.POST.items():
+                                    if key.startswith(f'new_split_') and key.endswith(f'_{counter}_'):
+                                        # Extract split index and field
+                                        split_parts = key.replace(f'new_split_', '').replace(f'_{counter}_', '').split('_')
+                                        if len(split_parts) >= 2:
+                                            field = split_parts[0]  # user, type, value
+                                            split_index = split_parts[1]
+
+                                            if split_index not in split_data:
+                                                split_data[split_index] = {}
+                                            split_data[split_index][field] = value
+
+                                # Create split records
+                                for split_index, split_info in split_data.items():
+                                    if all(k in split_info for k in ['user', 'type', 'value']):
+                                        try:
+                                            split_user = User.objects.get(id=split_info['user'])
+                                            split_value = Decimal(split_info['value'])
+                                            split_type = split_info['type']
+
+                                            if split_type == 'percentage':
+                                                BudgetSplit.objects.create(
+                                                    budget=budget,
+                                                    user=split_user,
+                                                    percentage=split_value
+                                                )
+                                            elif split_type == 'fixed':
+                                                BudgetSplit.objects.create(
+                                                    budget=budget,
+                                                    user=split_user,
+                                                    amount=split_value
+                                                )
+                                        except (User.DoesNotExist, ValueError):
+                                            continue
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Budget updated successfully!'
+        })
+
+    except ValidationError as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    except BudgetCategory.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Category not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error updating budget: {str(e)}'}, status=500)
 
 
 @login_required
@@ -583,9 +781,14 @@ def budget_edit(request, budget_id):
 
             # Update the budget's category
             budget.category = category
+            budget.save()  # Save category change immediately
+
+        # Create a mutable copy of POST data and add category field for form validation
+        post_data = request.POST.copy()
+        post_data['category'] = budget.category.id
 
         form = BudgetForm(
-            request.POST,
+            post_data,
             instance=budget,
             space=current_space,
             user=request.user,
@@ -655,6 +858,8 @@ def budget_edit(request, budget_id):
                 if not split_created:
                     messages.error(request, 'No valid splits were provided. Please add at least one valid split.')
                     return render(request, 'budgets/edit.html', {'form': form, 'budget': budget})
+                else:
+                    messages.success(request, f'Budget successfully split between {budget.splits.count()} members.')
 
             messages.success(request, f'Budget for {budget.category.name} updated successfully.')
             return redirect('budgets:home')

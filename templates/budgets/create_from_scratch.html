@@ -76,171 +76,7 @@
                 </div>
 
                 <!-- Quick Add Form -->
-                <form method="post" class="mb-6 p-4 border border-gray-300 rounded-lg bg-gray-50" id="quick-add-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="add_item">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Add Budget Item</h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="relative">
-                            <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                            <input type="text"
-                                   name="category_name"
-                                   id="category"
-                                   class="wallai-input"
-                                   placeholder="Type category name (e.g., Groceries, Rent, Gas...)"
-                                   autocomplete="off"
-                                   required>
-                            <input type="hidden" name="category_id" id="category_id">
-
-                            <!-- Suggestions dropdown -->
-                            <div id="suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 hidden max-h-48 overflow-y-auto">
-                                <!-- Suggestions will be populated here -->
-                            </div>
-                        </div>
-
-                        <div>
-                            <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span class="text-gray-500 sm:text-sm">$</span>
-                                </div>
-                                <input type="number" name="amount" id="amount" class="wallai-input pl-7"
-                                       placeholder="0.00" step="0.01" min="0.01" required>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Assignment</label>
-                            <div class="flex gap-2 mb-2">
-                                <button type="button" class="assignment-type-btn px-3 py-1 text-xs border rounded-md active" data-type="single">
-                                    Single Person
-                                </button>
-                                <button type="button" class="assignment-type-btn px-3 py-1 text-xs border rounded-md" data-type="split">
-                                    Split Between Users
-                                </button>
-                            </div>
-                            <input type="hidden" name="assignment_type" id="assignment_type" value="single">
-
-                            <!-- Single Assignment -->
-                            <div id="single-assignment">
-                                <select name="assigned_to" id="assigned_to" class="wallai-input">
-                                    <option value="">Unassigned</option>
-                                    {% for member in space_members %}
-                                        <option value="{{ member.id }}">{{ member.first_name|default:member.username }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <!-- Split Assignment -->
-                            <div id="split-assignment" class="hidden">
-                                <div class="space-y-3 mb-3" id="split-users-container">
-                                    <!-- Split user entries will be added here -->
-                                </div>
-                                <div class="flex gap-2">
-                                    <button type="button" class="px-3 py-1 text-xs bg-green-100 text-green-700 border border-green-300 rounded-md" onclick="addSplitUser()">
-                                        + Add User
-                                    </button>
-                                    <div class="text-xs text-gray-500 flex items-center ml-auto">
-                                        Total: <span id="split-total" class="font-medium ml-1">0%</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label for="payment_method" class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                            <div class="flex gap-2">
-                                <select name="payment_method" id="payment_method" class="wallai-input flex-1">
-                                    <option value="">Not specified</option>
-                                    {% for method in payment_methods %}
-                                        <option value="{{ method.id }}">{{ method.name }}</option>
-                                    {% empty %}
-                                        <option value="" disabled>No payment methods available</option>
-                                    {% endfor %}
-                                </select>
-                                <a href="{% url 'budgets:payment_method_create' %}"
-                                   class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-md whitespace-nowrap"
-                                   title="Add payment method">
-                                    + Add
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Payment Date Section -->
-                    <div class="mt-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Date</label>
-                        <div class="flex flex-wrap gap-2 mb-3">
-                            <button type="button" class="date-type-btn px-3 py-2 text-sm border rounded-md active" data-type="flexible">
-                                Flexible
-                            </button>
-                            <button type="button" class="date-type-btn px-3 py-2 text-sm border rounded-md" data-type="exact">
-                                Exact Date
-                            </button>
-                            <button type="button" class="date-type-btn px-3 py-2 text-sm border rounded-md" data-type="range">
-                                Date Range
-                            </button>
-                            <button type="button" class="date-type-btn px-3 py-2 text-sm border rounded-md" data-type="biweekly">
-                                Biweekly
-                            </button>
-                        </div>
-
-                        <input type="hidden" name="timing_type" id="timing_type" value="flexible">
-
-                        <!-- Exact Date Calendar -->
-                        <div id="exact-date" class="hidden">
-                            <input type="date" name="due_date" id="due_date" class="wallai-input">
-                        </div>
-
-                        <!-- Date Range -->
-                        <div id="date-range" class="hidden grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-xs text-gray-500 mb-1">From</label>
-                                <input type="date" name="range_start" id="range_start" class="wallai-input">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-500 mb-1">To</label>
-                                <input type="date" name="range_end" id="range_end" class="wallai-input">
-                            </div>
-                        </div>
-
-                        <!-- Biweekly -->
-                        <div id="biweekly-date" class="hidden grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-xs text-gray-500 mb-1">First Payment Date</label>
-                                <input type="date" name="biweekly_first" id="biweekly_first" class="wallai-input">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-500 mb-1">Second Payment Date</label>
-                                <input type="date" name="biweekly_second" id="biweekly_second" class="wallai-input">
-                            </div>
-                            <div class="col-span-2">
-                                <p class="text-xs text-gray-500">This expense will repeat every two weeks using this pattern</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 flex justify-end">
-                        <button type="submit"
-                                class="px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            Add Budget Item
-                        </button>
-                    </div>
-                    </div>
-
-                    <!-- Options -->
-                    <div class="mt-4 flex flex-wrap gap-4">
-                        <label class="flex items-center">
-                            <input type="checkbox" name="is_estimated" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
-                            <span class="ml-2 text-sm text-gray-700">Estimated amount (like utilities)</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="checkbox" name="is_recurring" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
-                            <span class="ml-2 text-sm text-gray-700">Recurring expense</span>
-                        </label>
-                    </div>
-                </form>
+                {% include 'components/add_budget_item_form.html' %}
 
                 <!-- Current Budget Items -->
                 <div class="space-y-4">
@@ -294,7 +130,7 @@
                                 <div class="flex items-center space-x-3">
                                     <span class="text-lg font-semibold text-gray-900">${{ budget.amount|floatformat:2 }}</span>
                                     <div class="flex space-x-1">
-                                        <button type="button" class="text-blue-600 hover:text-blue-800" onclick="showEditModal('{{ budget.id }}', '{{ budget.category.name }}', '{{ budget.amount|floatformat:2 }}', '{{ budget.assigned_to.id|default:'' }}', '{{ budget.payment_method.id|default:'' }}', '{{ budget.timing_type|default:'flexible' }}', '{{ budget.due_date|default:'' }}', '{{ budget.range_start|default:'' }}', '{{ budget.range_end|default:'' }}', {{ budget.is_estimated|yesno:'true,false' }}, {{ budget.is_recurring|yesno:'true,false' }})" title="Edit">
+                                        <button type="button" class="text-blue-600 hover:text-blue-800" onclick="alert('Edit functionality coming soon!')" title="Edit">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                             </svg>
@@ -890,92 +726,29 @@ document.addEventListener('click', function(event) {
         hideDeleteModal();
     }
 
-    const editModal = document.getElementById('edit-modal');
-    if (event.target === editModal) {
-        hideEditModal();
-    }
+    // Edit modal commented out temporarily
+    // const editModal = document.getElementById('edit-modal');
+    // if (event.target === editModal) {
+    //     hideEditModal();
+    // }
 });
 
-// Edit modal functions
+// Edit modal functions - DISABLED TEMPORARILY
 function showEditModal(budgetId, categoryName, amount, assignedTo, paymentMethod, timingType, dueDate, rangeStart, rangeEnd, isEstimated, isRecurring) {
-    // Set form values
-    document.getElementById('edit-budget-id').value = budgetId;
-    document.getElementById('edit-category').value = categoryName;
-    document.getElementById('edit-amount').value = amount;
-    document.getElementById('edit-assigned-to').value = assignedTo;
-    document.getElementById('edit-payment-method').value = paymentMethod;
-    document.getElementById('edit-timing-type').value = timingType;
-    document.getElementById('edit-is-estimated').checked = isEstimated;
-    document.getElementById('edit-is-recurring').checked = isRecurring;
-
-    // Set date fields
-    document.getElementById('edit-due-date').value = dueDate;
-    document.getElementById('edit-range-start').value = rangeStart;
-    document.getElementById('edit-range-end').value = rangeStart;
-    if (timingType === 'biweekly') {
-        document.getElementById('edit-biweekly-first').value = dueDate;
-        document.getElementById('edit-biweekly-second').value = rangeEnd;
-    }
-
-    // Set active date type button
-    document.querySelectorAll('.edit-date-type-btn').forEach(btn => {
-        btn.classList.remove('active', 'bg-blue-100', 'border-blue-500', 'text-blue-700');
-        btn.classList.add('border-gray-300', 'text-gray-700');
-    });
-
-    const activeBtn = document.querySelector(`.edit-date-type-btn[data-type="${timingType}"]`);
-    if (activeBtn) {
-        activeBtn.classList.add('active', 'bg-blue-100', 'border-blue-500', 'text-blue-700');
-    }
-
-    // Show appropriate date section
-    document.getElementById('edit-exact-date').classList.add('hidden');
-    document.getElementById('edit-date-range').classList.add('hidden');
-    document.getElementById('edit-biweekly-date').classList.add('hidden');
-
-    if (timingType === 'exact') {
-        document.getElementById('edit-exact-date').classList.remove('hidden');
-    } else if (timingType === 'range') {
-        document.getElementById('edit-date-range').classList.remove('hidden');
-    } else if (timingType === 'biweekly') {
-        document.getElementById('edit-biweekly-date').classList.remove('hidden');
-    }
-
-    document.getElementById('edit-modal').classList.remove('hidden');
+    // Temporarily disabled - modal HTML not present
+    console.log('Edit modal temporarily disabled');
+    alert('Edit functionality is being implemented...');
 }
 
 function hideEditModal() {
-    document.getElementById('edit-modal').classList.add('hidden');
+    console.log('hideEditModal called but modal not present');
 }
 
-// Edit modal date type buttons
-document.querySelectorAll('.edit-date-type-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        // Update button states
-        document.querySelectorAll('.edit-date-type-btn').forEach(b => {
-            b.classList.remove('active', 'bg-blue-100', 'border-blue-500', 'text-blue-700');
-            b.classList.add('border-gray-300', 'text-gray-700');
-        });
-        this.classList.add('active', 'bg-blue-100', 'border-blue-500', 'text-blue-700');
-
-        // Hide all date inputs
-        document.getElementById('edit-exact-date').classList.add('hidden');
-        document.getElementById('edit-date-range').classList.add('hidden');
-        document.getElementById('edit-biweekly-date').classList.add('hidden');
-
-        // Update hidden field
-        const type = this.dataset.type;
-        document.getElementById('edit-timing-type').value = type;
-
-        // Show appropriate date input
-        if (type === 'exact') {
-            document.getElementById('edit-exact-date').classList.remove('hidden');
-        } else if (type === 'range') {
-            document.getElementById('edit-date-range').classList.remove('hidden');
-        } else if (type === 'biweekly') {
-            document.getElementById('edit-biweekly-date').classList.remove('hidden');
-        }
-    });
-});
+// Edit modal date type buttons - DISABLED TEMPORARILY
+// document.querySelectorAll('.edit-date-type-btn').forEach(btn => {
+//     btn.addEventListener('click', function() {
+//         // Code commented out - elements don't exist yet
+//     });
+// });
 </script>
 {% endblock %}

@@ -211,3 +211,156 @@ def expense_calculator(request):
             return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'error': 'Invalid request'}, status=405)
+
+
+@login_required
+@csrf_protect
+def create_expense_api(request):
+    """API endpoint to create a new expense"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return JsonResponse({'success': False, 'error': 'Please select a space'}, status=400)
+
+    try:
+        budget_id = request.POST.get('budget_id')
+        amount = Decimal(request.POST.get('amount', '0'))
+        description = request.POST.get('description', '')
+        date = request.POST.get('date')
+        paid_by_id = request.POST.get('paid_by')
+        notes = request.POST.get('notes', '')
+
+        # Validation
+        if not budget_id:
+            return JsonResponse({'success': False, 'error': 'Budget ID is required'}, status=400)
+
+        if amount <= 0:
+            return JsonResponse({'success': False, 'error': 'Amount must be greater than 0'}, status=400)
+
+        if not description:
+            return JsonResponse({'success': False, 'error': 'Description is required'}, status=400)
+
+        if not date:
+            return JsonResponse({'success': False, 'error': 'Date is required'}, status=400)
+
+        if not paid_by_id:
+            return JsonResponse({'success': False, 'error': 'Paid by is required'}, status=400)
+
+        # Get budget and validate
+        budget = get_object_or_404(Budget, id=budget_id, space=current_space, is_active=True)
+        paid_by = get_object_or_404(User, id=paid_by_id)
+
+        # Validate paid_by is a space member
+        from spaces.models import SpaceMember
+        if not SpaceMember.objects.filter(space=current_space, user=paid_by, is_active=True).exists():
+            return JsonResponse({'success': False, 'error': 'User must be a member of the space'}, status=400)
+
+        with transaction.atomic():
+            # Create the expense
+            expense = ActualExpense.objects.create(
+                budget_item=budget,
+                actual_amount=amount,
+                date_paid=date,
+                paid_by=paid_by,
+                description=description,
+                is_shared=False  # For now, we'll implement basic single-person expenses
+            )
+
+            # Create a single expense split for the person who paid
+            ExpenseSplit.objects.create(
+                actual_expense=expense,
+                user=paid_by,
+                percentage=Decimal('100'),
+                amount=amount
+            )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Expense of ${amount} added successfully!',
+            'expense_id': expense.id
+        })
+
+    except Budget.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Budget not found'}, status=404)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
+    except ValueError as e:
+        return JsonResponse({'success': False, 'error': f'Invalid data: {str(e)}'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error creating expense: {str(e)}'}, status=500)
+
+
+@login_required
+def list_expenses_api(request, budget_id):
+    """API endpoint to list expenses for a specific budget"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return JsonResponse({'success': False, 'error': 'Please select a space'}, status=400)
+
+    try:
+        budget = get_object_or_404(Budget, id=budget_id, space=current_space, is_active=True)
+
+        expenses = ActualExpense.objects.filter(
+            budget_item=budget
+        ).select_related('paid_by').order_by('-date_paid')
+
+        expenses_data = []
+        for expense in expenses:
+            expenses_data.append({
+                'id': expense.id,
+                'amount': str(expense.actual_amount),
+                'description': expense.description,
+                'date': expense.date_paid.strftime('%Y-%m-%d'),
+                'paid_by_name': expense.paid_by.first_name or expense.paid_by.username,
+                'notes': getattr(expense, 'notes', ''),  # In case notes field doesn't exist
+                'is_shared': expense.is_shared
+            })
+
+        return JsonResponse({
+            'success': True,
+            'expenses': expenses_data,
+            'total_count': len(expenses_data)
+        })
+
+    except Budget.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Budget not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error loading expenses: {str(e)}'}, status=500)
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def delete_expense_api(request, expense_id):
+    """API endpoint to delete an expense"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return JsonResponse({'success': False, 'error': 'Please select a space'}, status=400)
+
+    try:
+        expense = get_object_or_404(
+            ActualExpense,
+            id=expense_id,
+            budget_item__space=current_space
+        )
+
+        # Check if user has permission to delete (either the person who paid or space admin)
+        from spaces.models import SpaceMember
+        user_member = SpaceMember.objects.filter(space=current_space, user=request.user).first()
+
+        if expense.paid_by != request.user and (not user_member or user_member.role != 'admin'):
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+
+        # Delete the expense (splits will be cascaded)
+        expense.delete()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Expense deleted successfully'
+        })
+
+    except ActualExpense.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Expense not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error deleting expense: {str(e)}'}, status=500)

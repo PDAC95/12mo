@@ -153,11 +153,20 @@
             <div class="bg-white shadow-lg rounded-xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <div class="flex justify-between items-center">
-                        <div>
-                            <h2 class="text-lg font-medium text-gray-900">Budget Tracker</h2>
-                            <p class="text-sm text-gray-500 mt-1">
-                                {{ current_budgets.count }} categories • Click any row to view details
-                            </p>
+                        <div class="flex items-center space-x-4">
+                            <div>
+                                <h2 class="text-lg font-medium text-gray-900">Budget Tracker</h2>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    {{ current_budgets.count }} categories • Click any row to view details
+                                </p>
+                            </div>
+                            <button onclick="openBudgetEdit()"
+                                   class="inline-flex items-center px-3 py-2 border border-blue-300 text-sm font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Edit
+                            </button>
                         </div>
                         <div class="text-right">
                             <div class="text-sm text-gray-500">Monthly Overview</div>
@@ -201,9 +210,7 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             {% for budget in current_budgets %}
-                            <tr class="hover:bg-blue-50 cursor-pointer transition-colors duration-150"
-                                onclick="window.location.href='{% url 'budgets:edit' budget.id %}'"
-                                title="Click to view detailed budget information">
+                            <tr class="hover:bg-blue-50 transition-colors duration-150 cursor-pointer" onclick="openQuickEdit({{ budget.id }}, '{{ budget.category.name|escapejs }}', '{{ budget.amount }}')" >
                                 <td class="pl-6 pr-2 md:px-6 py-4">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 w-8 h-8">
@@ -217,7 +224,9 @@
                                             <p class="text-sm font-medium text-gray-900 truncate">{{ budget.category.name }}</p>
                                             <p class="text-xs text-gray-500">{{ budget.category.category_type|title }}</p>
                                             <div class="md:hidden text-xs text-gray-400 mt-1">
-                                                {% if budget.assigned_to %}
+                                                {% if budget.splits.all %}
+                                                    Split between {{ budget.splits.count }} users
+                                                {% elif budget.assigned_to %}
                                                     Assigned: {{ budget.assigned_to.first_name|default:budget.assigned_to.username }}
                                                 {% else %}
                                                     Unassigned
@@ -247,21 +256,16 @@
                                     <p class="text-xs text-gray-500 mt-1">{{ budget.spent_percentage|floatformat:0 }}%</p>
                                 </td>
                                 <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {% if budget.assigned_to %}
+                                    {% if budget.splits.all %}
+                                        <span class="text-blue-600">Split ({{ budget.splits.count }} users)</span>
+                                    {% elif budget.assigned_to %}
                                         {{ budget.assigned_to.first_name|default:budget.assigned_to.username }}
                                     {% else %}
                                         <span class="text-gray-400">Unassigned</span>
                                     {% endif %}
                                 </td>
                                 <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <a href="{% url 'budgets:edit' budget.id %}"
-                                       class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-xs font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                        View Details
-                                    </a>
+                                    <!-- Action buttons can be added here if needed in the future -->
                                 </td>
                             </tr>
                             {% endfor %}
@@ -333,4 +337,1259 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Quick Edit Modal for Individual Budget Items -->
+<div id="quickEditModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900" id="quickEditTitle">Quick Edit Budget</h3>
+            <form id="quickEditForm" class="mt-4">
+                {% csrf_token %}
+                <input type="hidden" id="budgetId" name="budget_id">
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Current Amount:</label>
+                    <div class="text-lg font-semibold text-gray-900">$<span id="currentAmount">0.00</span></div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="quickAmount" class="block text-sm font-medium text-gray-700 mb-2">New Amount:</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">$</span>
+                        </div>
+                        <input type="number" id="quickAmount" name="amount" step="0.01" min="0.01" required
+                               class="pl-7 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-wallai-green focus:border-wallai-green"
+                               placeholder="0.00">
+                    </div>
+                </div>
+
+                <div class="flex justify-center space-x-3">
+                    <button type="button" onclick="closeQuickEdit()"
+                            class="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 bg-wallai-green text-white text-sm rounded-md hover:bg-green-700">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Edit Modal -->
+<div id="budgetEditModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-5 mx-auto p-5 border max-w-4xl shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Edit Budget Categories</h3>
+                <button onclick="closeBudgetEdit()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mb-4 p-4 bg-blue-50 rounded-lg">
+                <p class="text-sm text-blue-700">
+                    <strong>{{ current_month }}</strong> - You can add new budget categories, remove existing ones, or modify amounts.
+                </p>
+            </div>
+
+            <form id="budgetEditForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="month_period" value="{{ current_month }}">
+
+                <!-- Existing Categories -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Current Categories</h4>
+                    <div id="existingCategories" class="space-y-3">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Add New Category -->
+                <div class="mb-6 border-t border-gray-200 pt-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-lg font-semibold text-gray-900">Add New Category</h4>
+                        <button type="button" onclick="toggleAddCategoryForm()" id="addCategoryBtn"
+                               class="inline-flex items-center px-4 py-2 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 transition-colors shadow-sm">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Add Category
+                        </button>
+                    </div>
+                    <div id="addCategoryFormContainer" class="hidden">
+                        {% include 'components/add_budget_item_form.html' with form_id='budget-edit-add-form' form_title='Add Budget Item' submit_button_text='Add to Budget' %}
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-4 border-t">
+                    <div class="text-sm text-gray-500">
+                        Total Budget: $<span id="totalBudgetAmount">{{ total_budgeted|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="closeBudgetEdit()"
+                                class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Edit Modal -->
+<div id="quickEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center p-6 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900">Quick Edit Budget Item</h2>
+            <button type="button" onclick="closeQuickEdit()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-6">
+            {% include 'components/add_budget_item_form.html' with form_id='quickEditForm' form_title='Edit Budget Item' action='edit_item' submit_button_text='Update Budget' %}
+        </div>
+    </div>
+</div>
+
+<!-- Budget Edit Modal -->
+<div id="budgetEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center p-6 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900">Edit Budget Categories</h2>
+            <button type="button" onclick="closeBudgetEdit()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-6">
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Add New Budget Category</h3>
+                {% include 'components/add_budget_item_form.html' with form_id='budgetEditForm' form_title='Add New Budget Item' action='add_item' submit_button_text='Add Budget Item' %}
+            </div>
+
+            <!-- Existing categories will be loaded here by JavaScript -->
+            <div id="existingCategories" class="mt-6">
+                <!-- Loaded by loadExistingCategories() function -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openQuickEdit(budgetId, categoryName, currentAmount) {
+    console.log('openQuickEdit called', budgetId, categoryName, currentAmount); // Debug
+
+    // Populate the form with existing data
+    document.querySelector('#quickEditForm input[name="category_name"]').value = categoryName;
+    document.querySelector('#quickEditForm input[name="amount"]').value = parseFloat(currentAmount).toFixed(2);
+
+    // Store budget ID for form submission
+    document.querySelector('#quickEditForm').setAttribute('data-budget-id', budgetId);
+
+    // Show the modal
+    document.getElementById('quickEditModal').classList.remove('hidden');
+
+    // Focus on amount field for quick editing
+    setTimeout(() => {
+        const amountField = document.querySelector('#quickEditForm input[name="amount"]');
+        if (amountField) {
+            amountField.focus();
+            amountField.select();
+        }
+    }, 100);
+}
+
+function closeQuickEdit() {
+    document.getElementById('quickEditModal').classList.add('hidden');
+
+    // Clear the form
+    const form = document.getElementById('quickEditForm');
+    if (form) {
+        form.reset();
+        form.removeAttribute('data-budget-id');
+    }
+}
+
+// Handle form submission - COMMENTED OUT until modal HTML exists
+/*
+document.getElementById('quickEditForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const budgetId = document.getElementById('budgetId').value;
+    const amount = document.getElementById('quickAmount').value;
+
+    // Send AJAX request
+    fetch(`/budgets/api/quick-update/${budgetId}/`, {
+        method: 'POST',
+        body: JSON.stringify({
+            amount: amount
+        }),
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Refresh the page to show updated data
+            window.location.reload();
+        } else {
+            alert('Error updating budget: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating budget. Please try again.');
+    });
+});
+*/
+
+// Close modals when clicking outside
+document.getElementById('quickEditModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeQuickEdit();
+    }
+});
+
+document.getElementById('budgetEditModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeBudgetEdit();
+    }
+});
+
+// Close modals with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        if (!document.getElementById('quickEditModal').classList.contains('hidden')) {
+            closeQuickEdit();
+        }
+        if (!document.getElementById('budgetEditModal').classList.contains('hidden')) {
+            closeBudgetEdit();
+        }
+    }
+});
+
+// Budget Edit Functions
+let newCategoryCounter = 0;
+
+// Global member options for dynamic selects
+let memberOptions = '<option value="">Select user...</option>';
+
+// Initialize member options from server data
+const spaceMembers = [
+    {% for member in space_members %}
+    { id: {{ member.id }}, name: "{{ member.first_name|default:member.username|escapejs }}" }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+spaceMembers.forEach(member => {
+    memberOptions += `<option value="${member.id}">${member.name}</option>`;
+});
+
+function openBudgetEdit() {
+    console.log('openBudgetEdit called'); // Debug
+
+    // Load existing categories
+    loadExistingCategories();
+
+    // Show the modal
+    document.getElementById('budgetEditModal').classList.remove('hidden');
+}
+
+function closeBudgetEdit() {
+    document.getElementById('budgetEditModal').classList.add('hidden');
+
+    // Clear the form
+    const form = document.getElementById('budgetEditForm');
+    if (form) {
+        form.reset();
+    }
+
+    // Clear existing categories container
+    const existingContainer = document.getElementById('existingCategories');
+    if (existingContainer) {
+        existingContainer.innerHTML = '';
+    }
+
+    newCategoryCounter = 0;
+}
+
+function loadExistingCategories() {
+    const container = document.getElementById('existingCategories');
+    container.innerHTML = '';
+
+    // Budget data will be loaded from template
+    const budgetData = [
+        {% for budget in current_budgets %}
+        {
+            id: {{ budget.id }},
+            category_name: "{{ budget.category.name|escapejs }}",
+            amount: {{ budget.amount }},
+            is_existing: true
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    budgetData.forEach(budget => {
+        const categoryRow = createCategoryRow(budget);
+        container.appendChild(categoryRow);
+    });
+}
+
+function createCategoryRow(data) {
+    const div = document.createElement('div');
+    div.className = 'bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors';
+
+    if (data.is_existing) {
+        div.innerHTML = `
+            <div class="flex items-center justify-between">
+                <input type="hidden" name="existing_budget_${data.id}" value="${data.id}">
+                <div class="flex-1 mr-4">
+                    <span class="text-lg font-medium text-gray-900">${data.category_name}</span>
+                    <div class="text-sm text-gray-500 mt-1">Current budget category</div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="w-40">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 text-sm">$</span>
+                            </div>
+                            <input type="number" name="amount_${data.id}" step="0.01" min="0.01"
+                                   value="${data.amount}" onchange="updateTotalBudget()"
+                                   class="pl-8 block w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    <button type="button" onclick="markCategoryForDeletion(${data.id})"
+                           class="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                           title="Remove category">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        div.innerHTML = `
+            <div class="bg-white border border-gray-200 rounded-lg p-4 relative">
+                <!-- Remove Button (Top Right) -->
+                <button type="button" onclick="removeNewCategoryRow(this)"
+                       class="absolute top-2 right-2 text-gray-400 hover:text-red-600 transition-colors p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+
+                <!-- Essential Fields Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <!-- Category Name -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                        <div class="relative">
+                            <input type="text" name="new_category_name_${data.counter}" required
+                                   class="block w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Enter category name..."
+                                   autocomplete="off"
+                                   oninput="handleCategoryInput(this, ${data.counter})"
+                                   onfocus="handleCategoryFocus(this, ${data.counter})"
+                                   onblur="handleCategoryBlur(this, ${data.counter})"
+                                   onkeydown="handleCategoryKeydown(event, this, ${data.counter})">
+                            <input type="hidden" name="new_category_${data.counter}" class="category-id-field">
+                            <div id="suggestions_${data.counter}" class="absolute z-50 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-64 overflow-y-auto"></div>
+                        </div>
+                    </div>
+
+                    <!-- Amount -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Amount *</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 text-sm">$</span>
+                            </div>
+                            <input type="number" name="new_amount_${data.counter}" step="0.01" min="0.01" required
+                                   onchange="updateTotalBudget()" placeholder="0.00"
+                                   class="pl-8 block w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assignment Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <!-- Assigned To -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Assigned To</label>
+                        <select id="new_assigned_to_${data.counter}" name="new_assigned_to_${data.counter}"
+                               onchange="handleAssignmentChange(${data.counter})"
+                               class="block w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select member...</option>
+                            ${memberOptions}
+                            <option value="split" class="font-medium text-blue-600">🔀 Split between users</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Split Section (Appears right after Assigned To selection) -->
+                <div id="new_split_section_${data.counter}" class="hidden mb-4">
+                    <input type="hidden" id="new_enable_split_${data.counter}" name="new_enable_split_${data.counter}" value="false">
+                    <div class="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-medium text-blue-900">Split Configuration</h4>
+                            <span class="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded-full">Multiple users will share this budget</span>
+                        </div>
+                        <div id="new_split_users_${data.counter}" class="space-y-3">
+                            <!-- Split users will be added dynamically -->
+                        </div>
+                        <div class="flex items-center justify-between mt-3">
+                            <button type="button" onclick="addSplitUser(${data.counter})"
+                                   class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-sm font-medium rounded text-blue-700 bg-white hover:bg-blue-50 transition-colors">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                </svg>
+                                Add User to Split
+                            </button>
+                            <div class="text-sm text-blue-700 flex items-center">
+                                Total: <span id="split_total_${data.counter}" class="font-medium ml-1 px-2 py-1 rounded-full bg-blue-100">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Method Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <!-- Payment Method -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+                        <div class="flex gap-2">
+                            <select name="new_payment_method_${data.counter}"
+                                   class="flex-1 border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Select method...</option>
+                                {% for method in available_payment_methods %}
+                                <option value="{{ method.id }}">{{ method.name }}</option>
+                                {% empty %}
+                                <option value="" disabled>No payment methods available</option>
+                                {% endfor %}
+                            </select>
+                            <a href="{% url 'budgets:payment_method_create' %}"
+                               class="px-3 py-2.5 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-md whitespace-nowrap transition-colors"
+                               title="Add payment method">
+                                + Add
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Options Row -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <!-- Due Date -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
+                        <input type="date" name="new_due_date_${data.counter}"
+                               class="block w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <!-- Checkboxes in a column -->
+                    <div class="space-y-3">
+                        <label class="flex items-center">
+                            <input type="checkbox" name="new_is_estimated_${data.counter}" value="true"
+                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4">
+                            <span class="ml-3 text-sm text-gray-700">Estimated amount</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="new_is_recurring_${data.counter}" value="true"
+                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4">
+                            <span class="ml-3 text-sm text-gray-700">Recurring expense</span>
+                        </label>
+                    </div>
+                </div>
+
+
+                <!-- Notes -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                    <textarea name="new_notes_${data.counter}" rows="2"
+                             class="block w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                             placeholder="Additional notes or details about this budget category..."></textarea>
+                </div>
+            </div>
+        `;
+    }
+
+    return div;
+}
+
+// This function is not needed since we're using the component form instead
+function addNewCategoryRow() {
+    // Category addition is handled through the component form
+    console.log('Category addition handled through component form');
+}
+
+function removeNewCategoryRow(button) {
+    button.parentElement.remove();
+    updateTotalBudget();
+}
+
+function markCategoryForDeletion(budgetId) {
+    if (!confirm('Are you sure you want to remove this budget category?')) {
+        return;
+    }
+
+    const row = event.target.closest('.flex');
+    row.style.opacity = '0.5';
+    row.style.pointerEvents = 'none';
+
+    // Add hidden input to mark for deletion
+    const deleteInput = document.createElement('input');
+    deleteInput.type = 'hidden';
+    deleteInput.name = `delete_budget_${budgetId}`;
+    deleteInput.value = 'true';
+    row.appendChild(deleteInput);
+
+    updateTotalBudget();
+}
+
+function updateTotalBudget() {
+    let total = 0;
+
+    // Add existing category amounts (not marked for deletion)
+    const existingAmounts = document.querySelectorAll('#existingCategories input[name^="amount_"]');
+    existingAmounts.forEach(input => {
+        const row = input.closest('.flex');
+        if (row.style.opacity !== '0.5') { // Not marked for deletion
+            total += parseFloat(input.value) || 0;
+        }
+    });
+
+    // Add new category amounts
+    const newAmounts = document.querySelectorAll('#newCategories input[name^="new_amount_"]');
+    newAmounts.forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+
+    document.getElementById('totalBudgetAmount').textContent = total.toFixed(2);
+}
+
+// Handle budget edit form submission
+document.getElementById('budgetEditForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    fetch('/budgets/api/budget-edit/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeBudgetEdit();
+            window.location.reload(); // Refresh to show changes
+        } else {
+            alert('Error updating budget: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating budget. Please try again.');
+    });
+});
+
+// Close modal when clicking outside
+document.getElementById('budgetEditModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeBudgetEdit();
+    }
+});
+
+// This event listener was moved above and combined with quickEditModal handling
+
+// Category Autocomplete Functions
+let currentSuggestions = [];
+let currentActiveIndex = -1;
+let currentFieldCounter = null;
+
+function handleCategoryInput(input, counter) {
+    const query = input.value.trim();
+    currentFieldCounter = counter;
+
+    if (query.length >= 1) {
+        fetchCategorySuggestions(query, counter);
+    } else {
+        hideCategorySuggestions(counter);
+    }
+
+    // Clear the hidden field if user is typing
+    const hiddenField = input.parentNode.querySelector('.category-id-field');
+    if (hiddenField) {
+        hiddenField.value = '';
+    }
+}
+
+function handleCategoryFocus(input, counter) {
+    currentFieldCounter = counter;
+    if (input.value.trim() === '') {
+        fetchCategorySuggestions('', counter, true); // Show popular suggestions
+    } else {
+        fetchCategorySuggestions(input.value.trim(), counter);
+    }
+}
+
+function handleCategoryBlur(input, counter) {
+    // Delay hiding to allow clicking on suggestions
+    setTimeout(() => {
+        hideCategorySuggestions(counter);
+    }, 150);
+}
+
+function handleCategoryKeydown(event, input, counter) {
+    const suggestionsDiv = document.getElementById(`suggestions_${counter}`);
+    const suggestions = suggestionsDiv.querySelectorAll('.suggestion-item');
+
+    if (suggestions.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        currentActiveIndex = (currentActiveIndex + 1) % suggestions.length;
+        updateActiveSelection(suggestions, currentActiveIndex);
+    } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        currentActiveIndex = currentActiveIndex <= 0 ? suggestions.length - 1 : currentActiveIndex - 1;
+        updateActiveSelection(suggestions, currentActiveIndex);
+    } else if (event.key === 'Enter') {
+        event.preventDefault();
+        if (currentActiveIndex >= 0) {
+            selectCategorySuggestion(currentActiveIndex, counter);
+        }
+    } else if (event.key === 'Escape') {
+        hideCategorySuggestions(counter);
+    }
+}
+
+function fetchCategorySuggestions(query, counter, showPopular = false) {
+    const limit = showPopular ? 8 : 10;
+    const url = `/budgets/api/category-suggestions/?q=${encodeURIComponent(query)}&limit=${limit}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            currentSuggestions = data.suggestions;
+            displayCategorySuggestions(data.suggestions, counter);
+        })
+        .catch(error => {
+            console.error('Error fetching suggestions:', error);
+        });
+}
+
+function displayCategorySuggestions(suggestions, counter) {
+    const suggestionsDiv = document.getElementById(`suggestions_${counter}`);
+
+    if (suggestions.length === 0) {
+        hideCategorySuggestions(counter);
+        return;
+    }
+
+    let html = '';
+    suggestions.forEach((suggestion, index) => {
+        const popularBadge = suggestion.is_popular ?
+            '<span class="ml-2 px-2 py-1 text-xs bg-green-100 text-green-700 rounded">Popular</span>' : '';
+
+        html += `
+            <div class="suggestion-item px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                 onclick="selectCategorySuggestion(${index}, ${counter})">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="font-medium text-gray-900">${suggestion.name}</span>
+                        ${popularBadge}
+                    </div>
+                    <span class="text-xs text-gray-500 capitalize">${suggestion.category_type.replace('_', ' ')}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    suggestionsDiv.innerHTML = html;
+    suggestionsDiv.classList.remove('hidden');
+    currentActiveIndex = -1;
+}
+
+function selectCategorySuggestion(index, counter) {
+    if (index >= 0 && index < currentSuggestions.length) {
+        const suggestion = currentSuggestions[index];
+        const input = document.querySelector(`input[name="new_category_name_${counter}"]`);
+        const hiddenField = document.querySelector(`input[name="new_category_${counter}"]`);
+
+        if (input) {
+            input.value = suggestion.name;
+        }
+        if (hiddenField) {
+            // For new categories, we'll send the name instead of ID since they don't exist yet
+            hiddenField.value = suggestion.name;
+        }
+
+        hideCategorySuggestions(counter);
+    }
+}
+
+function hideCategorySuggestions(counter) {
+    const suggestionsDiv = document.getElementById(`suggestions_${counter}`);
+    if (suggestionsDiv) {
+        suggestionsDiv.classList.add('hidden');
+    }
+    currentActiveIndex = -1;
+}
+
+function updateActiveSelection(suggestions, activeIndex) {
+    suggestions.forEach((item, index) => {
+        item.classList.toggle('active', index === activeIndex);
+        item.classList.toggle('bg-blue-50', index === activeIndex);
+    });
+}
+
+// Assignment and Split Functions for New Categories
+function handleAssignmentChange(counter) {
+    const assignedSelect = document.getElementById(`new_assigned_to_${counter}`);
+    const splitSection = document.getElementById(`new_split_section_${counter}`);
+    const splitHidden = document.getElementById(`new_enable_split_${counter}`);
+
+    if (assignedSelect.value === 'split') {
+        // Show split section and enable split mode
+        splitSection.classList.remove('hidden');
+        splitHidden.value = 'true';
+        // Add first split user automatically if none exist
+        if (document.getElementById(`new_split_users_${counter}`).children.length === 0) {
+            addSplitUser(counter);
+        }
+        // Clear the assigned to value since we're using split
+        assignedSelect.value = '';
+    } else {
+        // Hide split section and disable split mode
+        splitSection.classList.add('hidden');
+        splitHidden.value = 'false';
+        document.getElementById(`new_split_users_${counter}`).innerHTML = '';
+    }
+}
+
+function toggleSplitSection(counter) {
+    // This function is kept for backwards compatibility but is now handled by handleAssignmentChange
+    const splitSection = document.getElementById(`new_split_section_${counter}`);
+    const assignedSelect = document.getElementById(`new_assigned_to_${counter}`);
+
+    if (splitSection.classList.contains('hidden')) {
+        splitSection.classList.remove('hidden');
+        assignedSelect.value = '';
+        // Add first split user automatically
+        if (document.getElementById(`new_split_users_${counter}`).children.length === 0) {
+            addSplitUser(counter);
+        }
+    } else {
+        splitSection.classList.add('hidden');
+        // Clear split users
+        document.getElementById(`new_split_users_${counter}`).innerHTML = '';
+    }
+}
+
+function addSplitUser(counter) {
+    const container = document.getElementById(`new_split_users_${counter}`);
+    const splitIndex = container.children.length;
+
+    const splitRow = document.createElement('div');
+    splitRow.className = 'flex items-center space-x-2';
+
+    splitRow.innerHTML = `
+        <div class="flex-1">
+            <select name="new_split_user_${counter}_${splitIndex}" required
+                   class="block w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Select user...</option>
+                ${memberOptions}
+            </select>
+        </div>
+        <div class="w-24">
+            <select name="new_split_type_${counter}_${splitIndex}" required
+                   class="block w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                   onchange="toggleSplitValueInput(this, ${counter}, ${splitIndex})">
+                <option value="">Type...</option>
+                <option value="percentage">%</option>
+                <option value="fixed">$</option>
+            </select>
+        </div>
+        <div class="w-20">
+            <input type="number" name="new_split_value_${counter}_${splitIndex}" step="0.01" min="0" required
+                   class="block w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                   placeholder="0" onchange="calculateSplitTotal(${counter})">
+        </div>
+        <button type="button" onclick="removeSplitUser(this, ${counter})"
+               class="text-red-600 hover:text-red-800 p-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    `;
+
+    container.appendChild(splitRow);
+}
+
+function removeSplitUser(button, counter) {
+    button.parentElement.remove();
+    calculateSplitTotal(counter);
+}
+
+function toggleSplitValueInput(selectElement, counter, splitIndex) {
+    const valueInput = document.querySelector(`input[name="new_split_value_${counter}_${splitIndex}"]`);
+
+    if (selectElement.value === 'percentage') {
+        valueInput.max = '100';
+        valueInput.placeholder = '0';
+    } else if (selectElement.value === 'fixed') {
+        valueInput.removeAttribute('max');
+        valueInput.placeholder = '0.00';
+    }
+
+    calculateSplitTotal(counter);
+}
+
+function calculateSplitTotal(counter) {
+    const container = document.getElementById(`new_split_users_${counter}`);
+    const rows = container.children;
+    let totalPercentage = 0;
+    let totalFixed = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+        const typeSelect = rows[i].querySelector(`select[name^="new_split_type_"]`);
+        const valueInput = rows[i].querySelector(`input[name^="new_split_value_"]`);
+
+        if (typeSelect && valueInput && typeSelect.value && valueInput.value) {
+            const value = parseFloat(valueInput.value);
+
+            if (typeSelect.value === 'percentage') {
+                totalPercentage += value;
+            } else if (typeSelect.value === 'fixed') {
+                totalFixed += value;
+            }
+        }
+    }
+
+    // Update total indicator
+    const totalIndicator = document.getElementById(`split_total_${counter}`);
+    if (totalIndicator) {
+        totalIndicator.textContent = `${totalPercentage.toFixed(0)}%`;
+
+        // Update indicator color based on total
+        totalIndicator.classList.remove('bg-blue-100', 'bg-green-100', 'bg-red-100', 'text-blue-700', 'text-green-700', 'text-red-700');
+        if (totalPercentage === 100) {
+            totalIndicator.classList.add('bg-green-100', 'text-green-700');
+        } else if (totalPercentage > 100) {
+            totalIndicator.classList.add('bg-red-100', 'text-red-700');
+        } else {
+            totalIndicator.classList.add('bg-blue-100', 'text-blue-700');
+        }
+    }
+
+    // Visual feedback for percentage totals on inputs
+    for (let i = 0; i < rows.length; i++) {
+        const typeSelect = rows[i].querySelector(`select[name^="new_split_type_"]`);
+        const valueInput = rows[i].querySelector(`input[name^="new_split_value_"]`);
+
+        if (typeSelect && typeSelect.value === 'percentage') {
+            if (totalPercentage > 100) {
+                valueInput.classList.add('border-red-300', 'text-red-900');
+                valueInput.classList.remove('border-gray-300');
+            } else if (totalPercentage === 100) {
+                valueInput.classList.add('border-green-300', 'text-green-900');
+                valueInput.classList.remove('border-gray-300', 'border-red-300', 'text-red-900');
+            } else {
+                valueInput.classList.remove('border-red-300', 'text-red-900', 'border-green-300', 'text-green-900');
+                valueInput.classList.add('border-gray-300');
+            }
+        }
+    }
+}
+
+// Add Budget Item Component JavaScript
+// Assignment type functionality
+document.querySelectorAll('.assignment-type-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Update button states
+        document.querySelectorAll('.assignment-type-btn').forEach(b => {
+            b.classList.remove('active', 'bg-blue-100', 'border-blue-500', 'text-blue-700');
+            b.classList.add('border-gray-300', 'text-gray-700');
+        });
+        this.classList.add('active', 'bg-blue-100', 'border-blue-500', 'text-blue-700');
+
+        const type = this.dataset.type;
+        document.getElementById('assignment_type').value = type;
+
+        // Show/hide assignment sections
+        if (type === 'single') {
+            document.getElementById('single-assignment').classList.remove('hidden');
+            document.getElementById('split-assignment').classList.add('hidden');
+        } else {
+            document.getElementById('single-assignment').classList.add('hidden');
+            document.getElementById('split-assignment').classList.remove('hidden');
+            // Initialize with one split user if empty
+            if (document.getElementById('split-users-container').children.length === 0) {
+                addSplitUser();
+            }
+        }
+    });
+});
+
+// Add CSS classes for active assignment button
+const activeAssignmentBtn = document.querySelector('.assignment-type-btn.active');
+if (activeAssignmentBtn) {
+    activeAssignmentBtn.classList.add('bg-blue-100', 'border-blue-500', 'text-blue-700');
+}
+
+let splitUserCounter = 0;
+
+function addSplitUser() {
+    const container = document.getElementById('split-users-container');
+    const userIndex = splitUserCounter++;
+
+    const userDiv = document.createElement('div');
+    userDiv.className = 'border border-gray-200 rounded-md p-3';
+    // Use the global memberOptions variable defined above
+
+    userDiv.innerHTML = '<div class="flex gap-3 items-start">' +
+        '<div class="flex-1">' +
+            '<select name="split_user_' + userIndex + '" class="wallai-input text-sm" required>' +
+                memberOptions +
+            '</select>' +
+        '</div>' +
+        '<div class="w-20">' +
+            '<select name="split_type_' + userIndex + '" class="wallai-input text-sm split-type-select" onchange="toggleSplitInputs(' + userIndex + ')" required>' +
+                '<option value="percentage">%</option>' +
+                '<option value="fixed_amount">$</option>' +
+            '</select>' +
+        '</div>' +
+        '<div class="w-24">' +
+            '<input type="number" name="split_value_' + userIndex + '"' +
+                   ' class="wallai-input text-sm split-value-input"' +
+                   ' placeholder="0" step="0.01" min="0.01"' +
+                   ' onchange="updateSplitTotal()" required>' +
+        '</div>' +
+        '<button type="button" class="text-red-600 hover:text-red-800 mt-2" onclick="removeSplitUser(this)">' +
+            '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"/>' +
+            '</svg>' +
+        '</button>' +
+    '</div>';
+
+    container.appendChild(userDiv);
+    updateSplitTotal();
+}
+
+function removeSplitUser(button) {
+    const userDiv = button.closest('.border');
+    userDiv.remove();
+    updateSplitTotal();
+}
+
+function toggleSplitInputs(userIndex) {
+    updateSplitTotal();
+}
+
+function updateSplitTotal() {
+    const splitInputs = document.querySelectorAll('.split-value-input');
+    const splitTypeSelects = document.querySelectorAll('.split-type-select');
+    const totalAmountInput = document.getElementById('amount');
+    const totalAmount = parseFloat(totalAmountInput?.value) || 0;
+
+    let percentageTotal = 0;
+    let fixedAmountTotal = 0;
+
+    splitInputs.forEach((input, index) => {
+        const value = parseFloat(input.value) || 0;
+        const type = splitTypeSelects[index]?.value;
+
+        if (type === 'percentage') {
+            percentageTotal += value;
+        } else {
+            fixedAmountTotal += value;
+        }
+    });
+
+    // Calculate remaining percentage for fixed amounts
+    const fixedPercentage = totalAmount > 0 ? (fixedAmountTotal / totalAmount) * 100 : 0;
+    const totalPercentage = percentageTotal + fixedPercentage;
+
+    const totalSpan = document.getElementById('split-total');
+    if (totalSpan) {
+        totalSpan.textContent = totalPercentage.toFixed(1) + '%';
+
+        // Color code based on total
+        if (Math.abs(totalPercentage - 100) < 0.1) {
+            totalSpan.className = 'font-medium ml-1 text-green-600';
+        } else if (totalPercentage > 100) {
+            totalSpan.className = 'font-medium ml-1 text-red-600';
+        } else {
+            totalSpan.className = 'font-medium ml-1 text-orange-600';
+        }
+    }
+}
+
+// Update split total when amount changes
+const amountInput = document.getElementById('amount');
+if (amountInput) {
+    amountInput.addEventListener('input', updateSplitTotal);
+}
+
+// Payment date type functionality
+document.querySelectorAll('.date-type-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Update button states
+        document.querySelectorAll('.date-type-btn').forEach(b => {
+            b.classList.remove('active', 'bg-blue-100', 'border-blue-500', 'text-blue-700');
+            b.classList.add('border-gray-300', 'text-gray-700');
+        });
+        this.classList.add('active', 'bg-blue-100', 'border-blue-500', 'text-blue-700');
+
+        // Hide all date inputs
+        document.getElementById('exact-date')?.classList.add('hidden');
+        document.getElementById('date-range')?.classList.add('hidden');
+        document.getElementById('biweekly-date')?.classList.add('hidden');
+
+        // Update hidden field
+        const type = this.dataset.type;
+        const timingTypeInput = document.getElementById('timing_type');
+        if (timingTypeInput) {
+            timingTypeInput.value = type;
+        }
+
+        // Show appropriate date input
+        if (type === 'exact') {
+            document.getElementById('exact-date')?.classList.remove('hidden');
+        } else if (type === 'range') {
+            document.getElementById('date-range')?.classList.remove('hidden');
+        } else if (type === 'biweekly') {
+            document.getElementById('biweekly-date')?.classList.remove('hidden');
+        }
+    });
+});
+
+// Add CSS classes for active date button
+const activeDateBtn = document.querySelector('.date-type-btn.active');
+if (activeDateBtn) {
+    activeDateBtn.classList.add('bg-blue-100', 'border-blue-500', 'text-blue-700');
+}
+
+// Toggle Add Category Form
+function toggleAddCategoryForm() {
+    const container = document.getElementById('addCategoryFormContainer');
+    const btn = document.getElementById('addCategoryBtn');
+
+    if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+        btn.innerHTML = '<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>' +
+            '</svg>' +
+            'Cancel';
+        btn.classList.remove('text-green-700', 'bg-green-50', 'hover:bg-green-100', 'border-green-300');
+        btn.classList.add('text-red-700', 'bg-red-50', 'hover:bg-red-100', 'border-red-300');
+    } else {
+        container.classList.add('hidden');
+        btn.innerHTML = '<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>' +
+            '</svg>' +
+            'Add Category';
+        btn.classList.remove('text-red-700', 'bg-red-50', 'hover:bg-red-100', 'border-red-300');
+        btn.classList.add('text-green-700', 'bg-green-50', 'hover:bg-green-100', 'border-green-300');
+        // Reset form
+        const form = document.getElementById('budget-edit-add-form');
+        if (form) {
+            form.reset();
+        }
+    }
+}
+
+// Category Autocomplete Functionality for Budget Edit Modal
+let suggestionsTimeout;
+// currentSuggestions already declared above
+
+// Wait for DOM to be ready and then initialize autocomplete
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const categoryInput = document.getElementById('category');
+        if (categoryInput) {
+            initializeCategoryAutocomplete();
+        }
+    }, 100);
+});
+
+function initializeCategoryAutocomplete() {
+    const categoryInput = document.getElementById('category');
+    const suggestionsDiv = document.getElementById('suggestions');
+
+    if (!categoryInput || !suggestionsDiv) return;
+
+    categoryInput.addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+
+        if (query.length < 2) {
+            hideSuggestions();
+            return;
+        }
+
+        // Clear previous timeout
+        clearTimeout(suggestionsTimeout);
+
+        // Debounce the API call
+        suggestionsTimeout = setTimeout(() => {
+            fetchSuggestions(query);
+        }, 300);
+    });
+
+    // Handle keyboard navigation
+    categoryInput.addEventListener('keydown', function(e) {
+        const suggestions = suggestionsDiv.querySelectorAll('.suggestion-item');
+
+        if (suggestions.length === 0) return;
+
+        let activeIndex = -1;
+        suggestions.forEach((item, index) => {
+            if (item.classList.contains('active')) {
+                activeIndex = index;
+            }
+        });
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIndex = Math.min(activeIndex + 1, suggestions.length - 1);
+            updateActiveSelection(suggestions, activeIndex);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIndex = Math.max(activeIndex - 1, -1);
+            updateActiveSelection(suggestions, activeIndex);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (activeIndex >= 0) {
+                selectSuggestion(currentSuggestions[activeIndex]);
+            }
+        } else if (e.key === 'Escape') {
+            hideSuggestions();
+        }
+    });
+
+    // Show popular suggestions when focusing empty field
+    categoryInput.addEventListener('focus', function(e) {
+        if (e.target.value.trim() === '') {
+            fetch('/budgets/api/category-suggestions/?limit=8')
+                .then(response => response.json())
+                .then(data => {
+                    currentSuggestions = data.suggestions;
+                    displaySuggestions(data.suggestions);
+                })
+                .catch(error => console.error('Error fetching suggestions:', error));
+        }
+    });
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!categoryInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+            hideSuggestions();
+        }
+    });
+}
+
+function fetchSuggestions(query) {
+    fetch('/budgets/api/category-suggestions/?q=' + encodeURIComponent(query) + '&limit=8')
+        .then(response => response.json())
+        .then(data => {
+            currentSuggestions = data.suggestions;
+            displaySuggestions(data.suggestions);
+        })
+        .catch(error => {
+            console.error('Error fetching suggestions:', error);
+        });
+}
+
+function displaySuggestions(suggestions) {
+    const suggestionsDiv = document.getElementById('suggestions');
+
+    if (!suggestionsDiv || suggestions.length === 0) {
+        hideSuggestions();
+        return;
+    }
+
+    let html = '';
+    suggestions.forEach((suggestion, index) => {
+        const popularBadge = suggestion.is_popular ?
+            '<span class="ml-2 px-2 py-1 text-xs bg-green-100 text-green-700 rounded">Popular</span>' : '';
+
+        html += '<div class="suggestion-item px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"' +
+                ' onclick="selectSuggestionByIndex(' + index + ')">' +
+                '<div class="flex items-center justify-between">' +
+                    '<div>' +
+                        '<span class="font-medium text-gray-900">' + suggestion.name + '</span>' +
+                        popularBadge +
+                    '</div>' +
+                    '<span class="text-xs text-gray-500 capitalize">' + suggestion.category_type.replace('_', ' ') + '</span>' +
+                '</div>' +
+            '</div>';
+    });
+
+    suggestionsDiv.innerHTML = html;
+    suggestionsDiv.classList.remove('hidden');
+}
+
+function updateActiveSelection(suggestions, activeIndex) {
+    suggestions.forEach((item, index) => {
+        item.classList.toggle('active', index === activeIndex);
+        item.classList.toggle('bg-blue-50', index === activeIndex);
+    });
+}
+
+function selectSuggestionByIndex(index) {
+    selectSuggestion(currentSuggestions[index]);
+}
+
+function selectSuggestion(suggestion) {
+    const categoryInput = document.getElementById('category');
+    const categoryIdInput = document.getElementById('category_id');
+
+    if (categoryInput) {
+        categoryInput.value = suggestion.name;
+    }
+    if (categoryIdInput) {
+        categoryIdInput.value = suggestion.name;
+    }
+
+    hideSuggestions();
+
+    // Focus on amount field
+    const amountInput = document.getElementById('amount');
+    if (amountInput) {
+        amountInput.focus();
+    }
+}
+
+function hideSuggestions() {
+    const suggestionsDiv = document.getElementById('suggestions');
+    if (suggestionsDiv) {
+        suggestionsDiv.classList.add('hidden');
+        suggestionsDiv.innerHTML = '';
+    }
+}
+</script>
+
 {% endblock %}

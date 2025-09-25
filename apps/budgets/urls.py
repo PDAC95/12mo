@@ -26,6 +26,7 @@ urlpatterns = [
     # AJAX endpoints
     path('api/quick-update/<int:budget_id>/', views.budget_quick_update, name='quick_update'),
     path('api/template/<int:template_id>/', views.template_data_api, name='template_data'),
+    path('api/budget-edit/', views.budget_edit_api, name='budget_edit_api'),
 
     # Budget categories
     path('categories/', views.category_list, name='categories'),
@@ -48,4 +49,9 @@ urlpatterns = [
     # Expenses
     path('add-expense/<int:budget_id>/', views_expenses.add_expense, name='add_expense'),
     path('api/expense-calculator/', views_expenses.expense_calculator, name='expense_calculator'),
+
+    # Expense API endpoints
+    path('api/expense/create/', views_expenses.create_expense_api, name='create_expense_api'),
+    path('api/expenses/<int:budget_id>/', views_expenses.list_expenses_api, name='list_expenses_api'),
+    path('api/expense/<int:expense_id>/delete/', views_expenses.delete_expense_api, name='delete_expense_api'),
 ]

@@ -53,7 +53,9 @@
       "mcp__chrome-devtools__get_console_logs",
       "mcp__chrome-devtools__monitor_console_live",
       "mcp__chrome-devtools__navigate_to_url",
-      "mcp__chrome-devtools__disconnect_from_browser"
+      "mcp__chrome-devtools__disconnect_from_browser",
+      "Bash(git rm:*)",
+      "mcp__chrome-devtools__start_chrome"
     ],
     "deny": [],
     "ask": []

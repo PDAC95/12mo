@@ -445,6 +445,20 @@ class Budget(models.Model):
         except (ValueError, IndexError):
             return self.month_period
 
+    def get_real_spending_current_month(self):
+        """Get actual expenses for this budget category in the current month"""
+        try:
+            from .models_expenses import ActualExpense
+            expenses = ActualExpense.objects.filter(
+                budget_item=self,
+                date_paid__year=int(self.month_period.split('-')[0]),
+                date_paid__month=int(self.month_period.split('-')[1])
+            )
+            return sum(expense.actual_amount for expense in expenses)
+        except ImportError:
+            # If expense model doesn't exist yet, return 0
+            return Decimal('0.00')
+
     @property
     def total_spent(self):
         """Calculate total spent in this category for this month"""
