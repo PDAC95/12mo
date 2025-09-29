@@ -3,8 +3,12 @@
 
 {% block title %}Budgets - {{ current_space.name }}{% endblock %}
 
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
 {% block content %}
-<div class="min-h-screen bg-gray-50 pb-20">
+<div class="min-h-screen bg-gray-50 pb-20" x-data="budgetDelete">
     <!-- Header -->
     <div class="bg-white shadow-sm border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -204,13 +208,13 @@
                                     Assigned
                                 </th>
                                 <th class="hidden md:table-cell px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Details
+                                    Actions
                                 </th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             {% for budget in current_budgets %}
-                            <tr class="hover:bg-blue-50 transition-colors duration-150 cursor-pointer" onclick="openQuickEdit({{ budget.id }}, '{{ budget.category.name|escapejs }}', '{{ budget.amount }}')" >
+                            <tr class="hover:bg-blue-50 transition-colors duration-150 cursor-pointer" data-budget-id="{{ budget.id }}" onclick="openQuickEdit({{ budget.id }}, '{{ budget.category.name|escapejs }}', '{{ budget.amount }}')" >
                                 <td class="pl-6 pr-2 md:px-6 py-4">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 w-8 h-8">
@@ -223,14 +227,23 @@
                                         <div class="ml-3 md:ml-4 min-w-0 flex-1">
                                             <p class="text-sm font-medium text-gray-900 truncate">{{ budget.category.name }}</p>
                                             <p class="text-xs text-gray-500">{{ budget.category.category_type|title }}</p>
-                                            <div class="md:hidden text-xs text-gray-400 mt-1">
-                                                {% if budget.splits.all %}
-                                                    Split between {{ budget.splits.count }} users
-                                                {% elif budget.assigned_to %}
-                                                    Assigned: {{ budget.assigned_to.first_name|default:budget.assigned_to.username }}
-                                                {% else %}
-                                                    Unassigned
-                                                {% endif %}
+                                            <div class="md:hidden text-xs text-gray-400 mt-1 flex justify-between items-center">
+                                                <span>
+                                                    {% if budget.splits.all %}
+                                                        Split between {{ budget.splits.count }} users
+                                                    {% elif budget.assigned_to %}
+                                                        Assigned: {{ budget.assigned_to.first_name|default:budget.assigned_to.username }}
+                                                    {% else %}
+                                                        Unassigned
+                                                    {% endif %}
+                                                </span>
+                                                <button @click="openDeleteModal({{ budget.id }}, '{{ budget.category.name|escapejs }}', {{ budget.total_spent }}, {{ budget.splits.count }}, {{ current_space.members.count }})"
+                                                       class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                                                       title="Eliminar presupuesto">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                    </svg>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -265,7 +278,14 @@
                                     {% endif %}
                                 </td>
                                 <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <!-- Action buttons can be added here if needed in the future -->
+                                    <button @click="openDeleteModal({{ budget.id }}, '{{ budget.category.name|escapejs }}', {{ budget.total_spent }}, {{ budget.splits.count }}, {{ current_space.members.count }})"
+                                           class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                                           title="Eliminar presupuesto">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                        <span class="ml-1 hidden sm:inline">Eliminar</span>
+                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -337,6 +357,9 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Budget Delete Modal -->
+{% include 'budgets/components/delete_modal.html' %}
 
 <!-- Quick Edit Modal for Individual Budget Items -->
 <div id="quickEditModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
@@ -1591,5 +1614,9 @@ function hideSuggestions() {
     }
 }
 </script>
+
+<!-- Budget Delete Functionality -->
+<link rel="stylesheet" href="{% static 'css/components/budget-delete.css' %}">
+<script src="{% static 'js/budget-delete.js' %}"></script>
 
 {% endblock %}

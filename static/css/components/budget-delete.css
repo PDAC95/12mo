@@ -1,0 +1,439 @@
+/**
+ * Budget Delete Component Styles
+ * Provides micro-interactions, animations, and enhanced UX for budget deletion
+ */
+
+/* Alpine.js Cloak for Flash Prevention */
+[x-cloak] {
+    display: none !important;
+}
+
+/* === DELETE BUTTON STYLES === */
+
+/* Base delete button styling */
+.budget-delete-btn {
+    @apply inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded;
+    @apply text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500;
+    @apply transition-all duration-200 ease-in-out;
+    @apply transform hover:scale-105 active:scale-95;
+}
+
+.budget-delete-btn:hover {
+    @apply shadow-md;
+    transform: translateY(-1px) scale(1.05);
+}
+
+.budget-delete-btn:active {
+    transform: translateY(0) scale(0.95);
+}
+
+.budget-delete-btn:focus {
+    @apply ring-red-500 ring-offset-2;
+}
+
+/* Mobile delete button adjustments */
+.budget-delete-btn-mobile {
+    @apply px-1.5 py-0.5;
+}
+
+/* Icon within delete button */
+.budget-delete-btn svg {
+    @apply transition-transform duration-200;
+}
+
+.budget-delete-btn:hover svg {
+    transform: rotate(5deg);
+}
+
+/* === MODAL ANIMATIONS === */
+
+/* Modal backdrop animation */
+.modal-backdrop {
+    @apply fixed inset-0 bg-gray-500 bg-opacity-75;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-backdrop.closing {
+    animation: fadeOut 0.2s ease-in;
+}
+
+/* Modal content animations */
+.modal-content {
+    animation: slideInFromBottom 0.3s ease-out;
+}
+
+.modal-content.closing {
+    animation: slideOutToBottom 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes slideInFromBottom {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 100px, 0) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+@keyframes slideOutToBottom {
+    from {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translate3d(0, 50px, 0) scale(0.95);
+    }
+}
+
+/* === CONFIRMATION INPUT STYLES === */
+
+/* Base confirmation input */
+.confirmation-input {
+    @apply w-full border border-gray-300 rounded-md px-3 py-2 text-sm;
+    @apply focus:ring-red-500 focus:border-red-500 transition-all duration-200;
+}
+
+/* Valid state */
+.confirmation-input.valid {
+    @apply border-green-500 bg-green-50;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* Error state */
+.confirmation-input.error {
+    @apply border-red-500 bg-red-50;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Shake animation for invalid input */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+}
+
+.animate-shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* === BUTTON STATES === */
+
+/* Delete confirmation button */
+.delete-confirm-btn {
+    @apply w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2;
+    @apply text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500;
+    @apply sm:ml-3 sm:w-auto sm:text-sm transition-all duration-200;
+}
+
+.delete-confirm-btn.enabled {
+    @apply bg-red-600 hover:bg-red-700;
+    transform: translateY(0);
+}
+
+.delete-confirm-btn.enabled:hover {
+    @apply shadow-lg;
+    transform: translateY(-1px);
+}
+
+.delete-confirm-btn.disabled {
+    @apply bg-gray-400 cursor-not-allowed;
+    opacity: 0.6;
+}
+
+.delete-confirm-btn.loading {
+    @apply bg-red-600;
+    opacity: 0.8;
+}
+
+/* Cancel button */
+.cancel-btn {
+    @apply mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2;
+    @apply bg-white text-base font-medium text-gray-700 hover:bg-gray-50;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
+    @apply sm:mt-0 sm:w-auto sm:text-sm transition-all duration-200;
+}
+
+.cancel-btn:hover {
+    @apply shadow-md;
+    transform: translateY(-1px);
+}
+
+.cancel-btn.disabled {
+    @apply opacity-50 cursor-not-allowed;
+}
+
+/* === LOADING SPINNER === */
+
+.loading-spinner {
+    @apply animate-spin h-4 w-4 text-white;
+}
+
+.loading-spinner svg {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* === TOAST NOTIFICATIONS === */
+
+/* Toast container */
+.toast-container {
+    @apply fixed bottom-0 right-0 mb-4 mr-4 max-w-sm w-full;
+    @apply bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden;
+    z-index: 1000;
+}
+
+/* Toast animations */
+.toast-enter {
+    animation: toastSlideIn 0.3s ease-out;
+}
+
+.toast-exit {
+    animation: toastSlideOut 0.2s ease-in;
+}
+
+@keyframes toastSlideIn {
+    from {
+        transform: translate3d(100%, 0, 0);
+        opacity: 0;
+    }
+    to {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+    }
+}
+
+@keyframes toastSlideOut {
+    from {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+    }
+    to {
+        transform: translate3d(100%, 0, 0);
+        opacity: 0;
+    }
+}
+
+/* Toast progress bar */
+.toast-progress {
+    @apply bg-gray-200 h-1;
+}
+
+.toast-progress-bar {
+    @apply bg-indigo-600 h-1 transition-all ease-linear;
+    animation: progressCountdown 30s linear forwards;
+}
+
+@keyframes progressCountdown {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+/* === WARNING SECTION STYLES === */
+
+.warning-section {
+    @apply p-4 bg-red-50 rounded-md border border-red-200;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
+
+.warning-icon {
+    @apply h-5 w-5 text-red-400;
+    animation: warningPulse 2s ease-in-out infinite;
+}
+
+@keyframes warningPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.warning-list {
+    @apply list-disc space-y-1 pl-5 text-sm text-red-700;
+}
+
+.warning-list li {
+    position: relative;
+}
+
+.warning-list li::marker {
+    color: #dc2626;
+}
+
+/* === AUDIT SECTION === */
+
+.audit-section {
+    @apply p-3 bg-gray-50 rounded-md text-xs text-gray-600;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+.audit-info {
+    @apply flex justify-between items-center;
+    font-family: 'Courier New', monospace;
+}
+
+/* === KEYBOARD HINTS === */
+
+.keyboard-hint {
+    @apply text-xs text-gray-500 text-center mt-2;
+}
+
+.keyboard-hint kbd {
+    @apply px-1 py-0.5 bg-gray-100 rounded border text-gray-700;
+    font-family: inherit;
+    font-size: 0.75rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* === RESPONSIVE DESIGN === */
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+    .modal-content {
+        @apply mx-2;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .delete-confirm-btn,
+    .cancel-btn {
+        @apply w-full mt-2;
+    }
+
+    .toast-container {
+        @apply mx-2 mb-2;
+        max-width: calc(100vw - 1rem);
+    }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+    .budget-delete-btn {
+        @apply px-2.5 py-1.5;
+    }
+}
+
+/* === FOCUS MANAGEMENT === */
+
+/* Focus trap for modal */
+.modal-content:focus {
+    outline: none;
+}
+
+.modal-content .focus-trap-start,
+.modal-content .focus-trap-end {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+}
+
+/* Enhanced focus styles */
+.budget-delete-btn:focus-visible,
+.delete-confirm-btn:focus-visible,
+.cancel-btn:focus-visible,
+.confirmation-input:focus-visible {
+    @apply ring-2 ring-offset-2;
+    outline: none;
+}
+
+/* === HOVER EFFECTS === */
+
+/* Subtle hover effects for better UX */
+.budget-delete-btn,
+.delete-confirm-btn:not(.disabled),
+.cancel-btn:not(.disabled) {
+    cursor: pointer;
+}
+
+.budget-delete-btn:hover,
+.delete-confirm-btn.enabled:hover,
+.cancel-btn:hover {
+    transition: all 0.15s ease-out;
+}
+
+/* === DARK MODE SUPPORT (if needed) === */
+
+@media (prefers-color-scheme: dark) {
+    .modal-content {
+        @apply bg-gray-800 text-white;
+    }
+
+    .warning-section {
+        @apply bg-red-900 bg-opacity-20 border-red-700;
+    }
+
+    .audit-section {
+        @apply bg-gray-700 text-gray-300;
+    }
+
+    .confirmation-input {
+        @apply bg-gray-700 border-gray-600 text-white;
+    }
+
+    .toast-container {
+        @apply bg-gray-800 text-white;
+    }
+}
+
+/* === PRINT STYLES === */
+
+@media print {
+    .budget-delete-btn,
+    .modal-backdrop,
+    .modal-content,
+    .toast-container {
+        display: none !important;
+    }
+}
+
+/* === ACCESSIBILITY ENHANCEMENTS === */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .budget-delete-btn {
+        @apply border-2 border-red-600;
+    }
+
+    .delete-confirm-btn.enabled {
+        @apply border-2 border-red-800;
+    }
+
+    .confirmation-input {
+        @apply border-2;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .budget-delete-btn,
+    .delete-confirm-btn,
+    .cancel-btn,
+    .modal-backdrop,
+    .modal-content,
+    .toast-container,
+    .loading-spinner,
+    .warning-icon {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    .budget-delete-btn:hover,
+    .delete-confirm-btn.enabled:hover,
+    .cancel-btn:hover {
+        transform: none !important;
+    }
+}

@@ -1654,3 +1654,290 @@ def payment_method_delete(request, method_id):
     except PaymentMethod.DoesNotExist:
         messages.error(request, 'Payment method not found.')
         return redirect('budgets:payment_methods')
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def budget_delete_api(request, budget_id):
+    """API endpoint for budget deletion with confirmation and audit trail"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return JsonResponse({'success': False, 'error': 'Please select a space'}, status=400)
+
+    try:
+        # Get budget with related data
+        budget = Budget.objects.select_related('category', 'assigned_to', 'created_by').prefetch_related(
+            'splits__user'
+        ).get(
+            id=budget_id,
+            space=current_space,
+            is_active=True
+        )
+
+        # Parse request data
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+
+        # Validate confirmation
+        confirmation = data.get('confirmation', '').strip()
+        if confirmation != 'ELIMINAR':
+            return JsonResponse({
+                'success': False,
+                'error': 'Confirmación incorrecta. Debes escribir exactamente "ELIMINAR"'
+            }, status=400)
+
+        # Check permissions - only budget creator, space owner, or assigned user can delete
+        user_can_delete = (
+            request.user == budget.created_by or
+            request.user == budget.assigned_to or
+            current_space.owner == request.user or
+            current_space.members.filter(user=request.user, role='admin').exists()
+        )
+
+        if not user_can_delete:
+            return JsonResponse({
+                'success': False,
+                'error': 'No tienes permisos para eliminar este presupuesto'
+            }, status=403)
+
+        # Prepare undo data before deletion
+        undo_data = {
+            'budget_id': budget.id,
+            'space_id': current_space.id,
+            'category_id': budget.category.id,
+            'amount': str(budget.amount),
+            'month_period': budget.month_period,
+            'assigned_to_id': budget.assigned_to.id if budget.assigned_to else None,
+            'notes': budget.notes,
+            'created_by_id': budget.created_by.id,
+            'payment_method_id': budget.payment_method.id if budget.payment_method else None,
+            'timing_type': budget.timing_type if hasattr(budget, 'timing_type') else 'flexible',
+            'due_date': budget.due_date.isoformat() if hasattr(budget, 'due_date') and budget.due_date else None,
+            'range_start': budget.range_start.isoformat() if hasattr(budget, 'range_start') and budget.range_start else None,
+            'range_end': budget.range_end.isoformat() if hasattr(budget, 'range_end') and budget.range_end else None,
+            'is_estimated': budget.is_estimated,
+            'is_recurring': budget.is_recurring,
+            'recurrence_type': budget.recurrence_type if hasattr(budget, 'recurrence_type') else None,
+            'timestamp': timezone.now().isoformat(),
+            'deleted_by_id': request.user.id,
+        }
+
+        # Store splits data for undo
+        splits_data = []
+        for split in budget.splits.all():
+            splits_data.append({
+                'user_id': split.user.id,
+                'split_type': getattr(split, 'split_type', 'percentage'),
+                'percentage': str(split.percentage) if hasattr(split, 'percentage') and split.percentage else None,
+                'amount': str(split.amount) if hasattr(split, 'amount') and split.amount else None,
+            })
+        undo_data['splits'] = splits_data
+
+        # Audit trail data
+        audit_data = data.get('audit_data', {})
+        audit_info = {
+            'user_id': request.user.id,
+            'user_email': request.user.email,
+            'ip_address': audit_data.get('ip', request.META.get('REMOTE_ADDR', 'Unknown')),
+            'user_agent': audit_data.get('user_agent', request.META.get('HTTP_USER_AGENT', 'Unknown')),
+            'timestamp': audit_data.get('timestamp', timezone.now().isoformat()),
+            'budget_name': budget.category.name,
+            'budget_amount': str(budget.amount),
+            'space_name': current_space.name,
+        }
+
+        with transaction.atomic():
+            # Delete the budget
+            budget_name = budget.category.name
+            budget.delete()
+
+            # Log deletion for audit
+            from django.contrib.admin.models import LogEntry, DELETION
+            from django.contrib.contenttypes.models import ContentType
+
+            LogEntry.objects.create(
+                user=request.user,
+                content_type=ContentType.objects.get_for_model(Budget),
+                object_id=budget_id,
+                object_repr=budget_name,
+                action_flag=DELETION,
+                change_message=f"Budget deleted via API. Audit: {json.dumps(audit_info)}"
+            )
+
+        # Calculate updated totals
+        remaining_budgets = Budget.objects.filter(
+            space=current_space,
+            month_period=budget.month_period,
+            is_active=True
+        )
+
+        total_budgeted = remaining_budgets.aggregate(
+            total=models.Sum('amount')
+        )['total'] or Decimal('0.00')
+
+        total_spent = Decimal('0.00')  # Will be calculated when expenses are implemented
+        remaining = total_budgeted - total_spent
+        spent_percentage = (total_spent / total_budgeted * 100) if total_budgeted > 0 else 0
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Presupuesto "{budget_name}" eliminado correctamente',
+            'undo_data': undo_data,
+            'updated_totals': {
+                'total_budgeted': str(total_budgeted),
+                'total_spent': str(total_spent),
+                'remaining': str(remaining),
+                'spent_percentage': float(spent_percentage),
+            }
+        })
+
+    except Budget.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Presupuesto no encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def budget_undo_delete_api(request):
+    """API endpoint to undo budget deletion"""
+    current_space = SpaceContextManager.get_current_space(request)
+    if not current_space:
+        return JsonResponse({'success': False, 'error': 'Please select a space'}, status=400)
+
+    try:
+        # Parse request data
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+
+        undo_data = data.get('undo_data')
+        if not undo_data:
+            return JsonResponse({'success': False, 'error': 'No undo data provided'}, status=400)
+
+        # Validate that the undo request is recent (within 5 minutes)
+        deletion_time = timezone.datetime.fromisoformat(undo_data.get('timestamp', ''))
+        if timezone.now() - deletion_time > timezone.timedelta(minutes=5):
+            return JsonResponse({
+                'success': False,
+                'error': 'El tiempo para deshacer la eliminación ha expirado (máximo 5 minutos)'
+            }, status=400)
+
+        # Validate space and user permissions
+        if undo_data.get('space_id') != current_space.id:
+            return JsonResponse({'success': False, 'error': 'Invalid space'}, status=403)
+
+        deleted_by_id = undo_data.get('deleted_by_id')
+        if request.user.id != deleted_by_id:
+            # Allow space admins to undo deletions
+            if not (current_space.owner == request.user or
+                   current_space.members.filter(user=request.user, role='admin').exists()):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No tienes permisos para deshacer esta eliminación'
+                }, status=403)
+
+        with transaction.atomic():
+            # Recreate budget from undo data
+            category = BudgetCategory.objects.get(id=undo_data.get('category_id'))
+            created_by = User.objects.get(id=undo_data.get('created_by_id'))
+            assigned_to = None
+            if undo_data.get('assigned_to_id'):
+                assigned_to = User.objects.get(id=undo_data.get('assigned_to_id'))
+
+            payment_method = None
+            if undo_data.get('payment_method_id'):
+                payment_method = PaymentMethod.objects.get(id=undo_data.get('payment_method_id'))
+
+            # Parse dates
+            due_date = None
+            if undo_data.get('due_date'):
+                due_date = timezone.datetime.fromisoformat(undo_data.get('due_date')).date()
+
+            range_start = None
+            if undo_data.get('range_start'):
+                range_start = timezone.datetime.fromisoformat(undo_data.get('range_start')).date()
+
+            range_end = None
+            if undo_data.get('range_end'):
+                range_end = timezone.datetime.fromisoformat(undo_data.get('range_end')).date()
+
+            # Recreate budget
+            budget = Budget.objects.create(
+                space=current_space,
+                category=category,
+                amount=Decimal(undo_data.get('amount')),
+                month_period=undo_data.get('month_period'),
+                assigned_to=assigned_to,
+                notes=undo_data.get('notes', ''),
+                created_by=created_by,
+                payment_method=payment_method,
+                is_estimated=undo_data.get('is_estimated', False),
+                is_recurring=undo_data.get('is_recurring', False),
+            )
+
+            # Set additional fields if they exist in the model
+            if hasattr(budget, 'timing_type'):
+                budget.timing_type = undo_data.get('timing_type', 'flexible')
+            if hasattr(budget, 'due_date'):
+                budget.due_date = due_date
+            if hasattr(budget, 'range_start'):
+                budget.range_start = range_start
+            if hasattr(budget, 'range_end'):
+                budget.range_end = range_end
+            if hasattr(budget, 'recurrence_type'):
+                budget.recurrence_type = undo_data.get('recurrence_type')
+
+            budget.save()
+
+            # Recreate splits
+            for split_data in undo_data.get('splits', []):
+                user = User.objects.get(id=split_data['user_id'])
+
+                split_kwargs = {
+                    'budget': budget,
+                    'user': user,
+                }
+
+                # Handle different BudgetSplit model structures
+                if split_data.get('percentage'):
+                    split_kwargs['percentage'] = Decimal(split_data['percentage'])
+                if split_data.get('amount'):
+                    split_kwargs['amount'] = Decimal(split_data['amount'])
+
+                BudgetSplit.objects.create(**split_kwargs)
+
+            # Log restoration for audit
+            from django.contrib.admin.models import LogEntry, ADDITION
+            from django.contrib.contenttypes.models import ContentType
+
+            LogEntry.objects.create(
+                user=request.user,
+                content_type=ContentType.objects.get_for_model(Budget),
+                object_id=budget.id,
+                object_repr=str(budget),
+                action_flag=ADDITION,
+                change_message=f"Budget deletion undone via API by {request.user.email}"
+            )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Presupuesto restaurado correctamente',
+        })
+
+    except (BudgetCategory.DoesNotExist, User.DoesNotExist, PaymentMethod.DoesNotExist) as e:
+        return JsonResponse({
+            'success': False,
+            'error': 'Error al restaurar: datos de referencia no encontrados'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=500)

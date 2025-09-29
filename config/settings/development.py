@@ -76,6 +76,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'budget_deletion': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 

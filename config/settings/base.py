@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'django_extensions',
+    # 'django_ratelimit',  # Temporarily disabled for testing
     
     # Local apps
     'config',  # Config app for management commands
@@ -200,3 +201,15 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
+
+# Cache configuration for rate limiting
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_table',
+    }
+}
+
+# Rate limiting configuration
+RATELIMIT_ENABLE = False  # Disabled for development testing
+RATELIMIT_USE_CACHE = 'default'

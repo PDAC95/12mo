@@ -6,6 +6,7 @@ from django.utils import timezone
 from decimal import Decimal
 import calendar
 from datetime import datetime
+from .managers import BudgetManager
 
 User = get_user_model()
 
@@ -364,6 +365,24 @@ class Budget(models.Model):
         help_text="Payment method to use for this expense"
     )
 
+    # Soft delete fields
+    deleted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this budget was soft deleted"
+    )
+    deleted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deleted_budgets',
+        help_text="User who deleted this budget"
+    )
+
+    # Custom manager
+    objects = BudgetManager()
+
     class Meta:
         db_table = 'budgets'
         ordering = ['-month_period', 'category__name']
@@ -719,6 +738,26 @@ class Budget(models.Model):
 
         except (ValueError, TypeError):
             pass
+
+    # Soft delete methods
+    def soft_delete(self, deleted_by=None):
+        """Soft delete this budget"""
+        self.deleted_at = timezone.now()
+        self.deleted_by = deleted_by
+        self.is_active = False
+        self.save(update_fields=['deleted_at', 'deleted_by', 'is_active'])
+
+    def restore(self):
+        """Restore a soft-deleted budget"""
+        self.deleted_at = None
+        self.deleted_by = None
+        self.is_active = True
+        self.save(update_fields=['deleted_at', 'deleted_by', 'is_active'])
+
+    @property
+    def is_deleted(self):
+        """Check if this budget is soft-deleted"""
+        return self.deleted_at is not None
 
     def save(self, *args, **kwargs):
         self.full_clean()

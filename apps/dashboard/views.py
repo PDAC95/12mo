@@ -13,7 +13,7 @@ from spaces.utils import SpaceContextManager, get_space_context
 class DashboardHomeView(LoginRequiredMixin, TemplateView):
     """Main dashboard view for authenticated users"""
     template_name = 'dashboard/home.html'
-    login_url = '/auth/login/'
+    login_url = '/login/'
     
     def get_greeting(self):
         """Return appropriate greeting based on current time"""
