@@ -53,4 +53,5 @@ playwright/.cache/
 tests/screenshots/
 
 # Claude Code MCP
-.claude/settings.local.json
+.claude/settings.local.jsonchrome-devtools-mcp/
+nul
